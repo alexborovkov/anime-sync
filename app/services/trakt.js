@@ -1,6 +1,6 @@
 import Service, { service } from '@ember/service';
 import config from 'trakt-mal-sync/config/environment';
-import { traktLimiter } from '../utils/rate-limiter';
+import { traktLimiter } from 'trakt-mal-sync/utils/rate-limiter';
 
 /**
  * Trakt API service

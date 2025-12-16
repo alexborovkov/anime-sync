@@ -1,6 +1,6 @@
 import Service, { service } from '@ember/service';
 import config from 'trakt-mal-sync/config/environment';
-import { malLimiter } from '../utils/rate-limiter';
+import { malLimiter } from 'trakt-mal-sync/utils/rate-limiter';
 
 /**
  * MyAnimeList API service

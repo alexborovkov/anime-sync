@@ -18,7 +18,7 @@ module.exports = function (environment) {
       // API Configuration
       TRAKT_CLIENT_ID: process.env.TRAKT_CLIENT_ID || '',
       MAL_CLIENT_ID: process.env.MAL_CLIENT_ID || '',
-      APP_URL: process.env.APP_URL || 'http://localhost:4200',
+      APP_URL: process.env.APP_URL || 'http://localhost:4201',
 
       // API Endpoints
       TRAKT_API_BASE_URL: 'https://api.trakt.tv',

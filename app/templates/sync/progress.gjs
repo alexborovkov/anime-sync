@@ -1,60 +1,13 @@
 import { pageTitle } from 'ember-page-title';
-import RouteTemplate from 'ember-route-template';
-import { service } from '@ember/service';
-import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
+import { gt } from 'ember-truth-helpers';
 
-export default RouteTemplate(
-  class {
-    @service syncEngine;
-    @service router;
-
-    @tracked results = null;
-    @tracked syncing = false;
-
-    constructor(owner, args) {
-      super(owner, args);
-      // Auto-start sync when component loads
-      this.executeSync(args.model.operations);
-    }
-
-    @action
-    async executeSync(operations) {
-      this.syncing = true;
-
-      try {
-        this.results = await this.syncEngine.executeSyncOperations(
-          operations,
-          (progress, total) => {
-            // Progress callback - updates are handled by service's tracked properties
-          },
-        );
-      } catch (err) {
-        this.results = {
-          error: err.message,
-        };
-      } finally {
-        this.syncing = false;
-        // Redirect to results page after 1 second
-        setTimeout(() => {
-          this.router.transitionTo('sync.results', {
-            queryParams: {
-              results: JSON.stringify(this.results),
-            },
-          });
-        }, 1000);
-      }
-    }
-
-    get progressPercent() {
-      if (!this.syncEngine.syncTotal) return 0;
-      return Math.round(
-        (this.syncEngine.syncProgress / this.syncEngine.syncTotal) * 100,
-      );
-    }
-
-    <template>
+<template>
       {{pageTitle "Syncing..."}}
+
+      {{! Auto-start sync when model is available }}
+      {{#if this.shouldAutoStart}}
+        {{this.startSync}}
+      {{/if}}
 
       <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue flex items-center justify-center">
         <div class="max-w-2xl w-full mx-4">
@@ -119,6 +72,4 @@ export default RouteTemplate(
 
         </div>
       </div>
-    </template>
-  }
-);
+</template>

@@ -52,7 +52,7 @@ npm install
 1. Visit [https://trakt.tv/oauth/applications](https://trakt.tv/oauth/applications)
 2. Create a new application
 3. Set redirect URI:
-   - Development: `http://localhost:4200/auth/trakt-callback`
+   - Development: `http://localhost:4201/auth/trakt-callback`
    - Production: `https://your-domain.com/auth/trakt-callback`
 4. Save your **Client ID** and **Client Secret**
 
@@ -61,7 +61,7 @@ npm install
 1. Visit [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig)
 2. Create a new application
 3. Set redirect URI:
-   - Development: `http://localhost:4200/auth/mal-callback`
+   - Development: `http://localhost:4201/auth/mal-callback`
    - Production: `https://your-domain.com/auth/mal-callback`
 4. Save your **Client ID** (no secret needed - uses PKCE)
 
@@ -78,7 +78,7 @@ Edit \`.env.local\` and add your credentials:
 \`\`\`env
 TRAKT_CLIENT_ID=your_trakt_client_id
 MAL_CLIENT_ID=your_mal_client_id
-APP_URL=http://localhost:4200
+APP_URL=http://localhost:4201
 \`\`\`
 
 **Note**: The Trakt Client Secret should be set as an environment variable in your deployment platform (Vercel/Netlify), not in the code.
@@ -101,7 +101,7 @@ yarn start
 npm start
 \`\`\`
 
-Visit [http://localhost:4200](http://localhost:4200)
+Visit [http://localhost:4201](http://localhost:4201)
 
 ### Code Linting and Formatting
 

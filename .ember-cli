@@ -15,5 +15,10 @@
     Setting `routeAuthoringFormat` to "strict" will force the blueprint generators to generate GJS
     or GTS templates for routes. "loose" is the default
   */
-  "routeAuthoringFormat": "strict"
+  "routeAuthoringFormat": "strict",
+
+  /**
+    Development server port configuration
+  */
+  "port": 4201
 }

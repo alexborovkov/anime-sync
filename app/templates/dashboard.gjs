@@ -1,48 +1,10 @@
 import { pageTitle } from 'ember-page-title';
-import RouteTemplate from 'ember-route-template';
-import { service } from '@ember/service';
 import { LinkTo } from '@ember/routing';
-import { action } from '@ember/object';
 import { on } from '@ember/modifier';
-import ConnectionCard from '../components/connection-card';
+import { and } from 'ember-truth-helpers';
+import ConnectionCard from 'trakt-mal-sync/components/connection-card';
 
-export default RouteTemplate(
-  class {
-    @service oauth;
-    @service router;
-
-    @action
-    async connectTrakt() {
-      await this.oauth.initiateTraktAuth();
-    }
-
-    @action
-    async connectMAL() {
-      await this.oauth.initiateMALAuth();
-    }
-
-    @action
-    disconnectTrakt() {
-      if (confirm('Are you sure you want to disconnect Trakt?')) {
-        this.oauth.logoutTrakt();
-        window.location.reload();
-      }
-    }
-
-    @action
-    disconnectMAL() {
-      if (confirm('Are you sure you want to disconnect MyAnimeList?')) {
-        this.oauth.logoutMAL();
-        window.location.reload();
-      }
-    }
-
-    @action
-    goToSync() {
-      this.router.transitionTo('sync.preview');
-    }
-
-    <template>
+<template>
       {{pageTitle "Dashboard"}}
 
       <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue">
@@ -62,7 +24,7 @@ export default RouteTemplate(
               <ConnectionCard
                 @service="Trakt"
                 @description="Connect your Trakt.tv account to sync your watched anime."
-                @isConnected={{@model.isAuthenticatedTrakt}}
+                @isConnected={{this.isAuthenticatedTrakt}}
                 @onConnect={{this.connectTrakt}}
                 @onDisconnect={{this.disconnectTrakt}}
                 @buttonClass="bg-trakt-red hover:bg-red-700"
@@ -71,7 +33,7 @@ export default RouteTemplate(
               <ConnectionCard
                 @service="MyAnimeList"
                 @description="Connect your MyAnimeList account to sync your anime list."
-                @isConnected={{@model.isAuthenticatedMAL}}
+                @isConnected={{this.isAuthenticatedMAL}}
                 @onConnect={{this.connectMAL}}
                 @onDisconnect={{this.disconnectMAL}}
                 @buttonClass="bg-mal-blue hover:bg-blue-700"
@@ -81,7 +43,7 @@ export default RouteTemplate(
           </div>
 
           {{! Sync Actions }}
-          {{#if (and @model.isAuthenticatedTrakt @model.isAuthenticatedMAL)}}
+          {{#if (and this.isAuthenticatedTrakt this.isAuthenticatedMAL)}}
             <div class="mb-8">
               <h2 class="text-2xl font-bold text-white mb-4">Sync Options</h2>
               <div class="bg-gray-800 rounded-lg p-6">
@@ -131,7 +93,7 @@ export default RouteTemplate(
             <div class="bg-gray-800 rounded-lg p-6">
               <h3 class="text-gray-400 text-sm font-medium mb-2">Status</h3>
               <p class="text-2xl font-bold text-white">
-                {{#if (and @model.isAuthenticatedTrakt @model.isAuthenticatedMAL)}}
+                {{#if (and this.isAuthenticatedTrakt this.isAuthenticatedMAL)}}
                   Ready to Sync
                 {{else}}
                   Not Ready
@@ -141,15 +103,15 @@ export default RouteTemplate(
 
             <div class="bg-gray-800 rounded-lg p-6">
               <h3 class="text-gray-400 text-sm font-medium mb-2">Trakt</h3>
-              <p class="text-2xl font-bold {{if @model.isAuthenticatedTrakt 'text-green-400' 'text-gray-500'}}">
-                {{if @model.isAuthenticatedTrakt 'Connected' 'Disconnected'}}
+              <p class="text-2xl font-bold {{if this.isAuthenticatedTrakt 'text-green-400' 'text-gray-500'}}">
+                {{if this.isAuthenticatedTrakt 'Connected' 'Disconnected'}}
               </p>
             </div>
 
             <div class="bg-gray-800 rounded-lg p-6">
               <h3 class="text-gray-400 text-sm font-medium mb-2">MyAnimeList</h3>
-              <p class="text-2xl font-bold {{if @model.isAuthenticatedMAL 'text-green-400' 'text-gray-500'}}">
-                {{if @model.isAuthenticatedMAL 'Connected' 'Disconnected'}}
+              <p class="text-2xl font-bold {{if this.isAuthenticatedMAL 'text-green-400' 'text-gray-500'}}">
+                {{if this.isAuthenticatedMAL 'Connected' 'Disconnected'}}
               </p>
             </div>
 
@@ -157,6 +119,4 @@ export default RouteTemplate(
 
         </div>
       </div>
-    </template>
-  }
-);
+</template>

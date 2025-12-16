@@ -1,9 +1,8 @@
 import { pageTitle } from 'ember-page-title';
-import RouteTemplate from 'ember-route-template';
 import { LinkTo } from '@ember/routing';
+import { eq } from 'ember-truth-helpers';
 
-export default RouteTemplate(
-  <template>
+<template>
     {{pageTitle "Sync Results"}}
 
     <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue">
@@ -146,5 +145,4 @@ export default RouteTemplate(
 
       </div>
     </div>
-  </template>
-);
+</template>
