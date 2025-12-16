@@ -15,8 +15,20 @@ module.exports = function (environment) {
     },
 
     APP: {
-      // Here you can pass flags/options to your application instance
-      // when it is created
+      // API Configuration
+      TRAKT_CLIENT_ID: process.env.TRAKT_CLIENT_ID || '',
+      MAL_CLIENT_ID: process.env.MAL_CLIENT_ID || '',
+      APP_URL: process.env.APP_URL || 'http://localhost:4200',
+
+      // API Endpoints
+      TRAKT_API_BASE_URL: 'https://api.trakt.tv',
+      MAL_API_BASE_URL: 'https://api.myanimelist.net/v2',
+
+      // OAuth URLs
+      TRAKT_AUTH_URL: 'https://trakt.tv/oauth/authorize',
+      TRAKT_TOKEN_URL: '/api/trakt-token',  // Serverless function
+      MAL_AUTH_URL: 'https://myanimelist.net/v1/oauth2/authorize',
+      MAL_TOKEN_URL: 'https://myanimelist.net/v1/oauth2/token',
     },
   };
 
