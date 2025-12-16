@@ -7,7 +7,7 @@ A client-side web application for bidirectional synchronization of anime lists b
 - 🔄 **Bidirectional Sync**: Transfer your anime lists between Trakt and MyAnimeList
 - 🔐 **Secure OAuth**: PKCE flow for MAL, secure serverless function for Trakt
 - 💾 **Smart Caching**: IndexedDB for offline support and faster performance
-- 🎯 **ID Mapping**: Automatic anime matching using anime-offline-database
+- 🎯 **Smart Mapping**: API-based anime matching with title similarity and year validation
 - 📊 **Preview Changes**: Review sync operations before executing
 - ⚡ **Rate Limited**: Respects API limits (Trakt: 1000/5min, MAL: 60/min)
 - 🎨 **Modern UI**: Built with Tailwind CSS and Ember.js
@@ -82,14 +82,6 @@ APP_URL=http://localhost:4201
 \`\`\`
 
 **Note**: The Trakt Client Secret should be set as an environment variable in your deployment platform (Vercel/Netlify), not in the code.
-
-### 5. Download Anime Mapping Database
-
-Download the anime-offline-database.json file and place it in the \`public\` directory:
-
-\`\`\`bash
-curl -o public/anime-offline-database.json https://raw.githubusercontent.com/manami-project/anime-offline-database/master/anime-offline-database-minified.json
-\`\`\`
 
 ## Development
 

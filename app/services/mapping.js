@@ -2,191 +2,185 @@ import Service, { service } from '@ember/service';
 
 /**
  * Mapping service for converting between Trakt and MAL IDs
- * Uses anime-offline-database for ID mapping
- * Falls back to fuzzy title matching when direct mapping is unavailable
+ * Uses Trakt's search API to find anime by title
+ * Caches successful mappings in IndexedDB
  */
 export default class MappingService extends Service {
   @service cache;
-
-  mappingDatabase = null;
-  isLoaded = false;
+  @service trakt;
+  @service mal;
 
   /**
-   * Load the anime mapping database
-   * Downloads from anime-offline-database if not cached
-   * @returns {Promise<void>}
+   * Get Trakt slug from MAL anime entry
+   * Searches Trakt by title and matches based on title similarity and year
+   * @param {object} malAnime - MAL anime entry with { id, title, start_year, alternative_titles }
+   * @returns {Promise<string|null>} - Trakt slug or null if not found
    */
-  async loadMappingDatabase() {
-    if (this.isLoaded && this.mappingDatabase) {
-      return;
+  async getTraktSlugFromMAL(malAnime) {
+    if (!malAnime || !malAnime.title) {
+      return null;
     }
 
-    // Try to load from cache first
-    const cached = await this.cache.get('animeMapping', 'database');
-    if (cached && cached.entries) {
-      this.mappingDatabase = cached.entries;
-      this.isLoaded = true;
-      return;
+    // Check cache first
+    const cacheKey = `mal-${malAnime.id}`;
+    const cached = await this.cache.get('animeMapping', cacheKey);
+    if (cached && cached.traktSlug) {
+      return cached.traktSlug;
     }
 
     try {
-      // Load from public folder
-      const response = await fetch('/anime-offline-database.json');
-      if (!response.ok) {
-        throw new Error('Failed to load mapping database');
+      // Search Trakt by title
+      const searchTitle = malAnime.title;
+      const traktResults = await this.trakt.searchShows(searchTitle, 'show');
+
+      if (!traktResults || traktResults.length === 0) {
+        return null;
       }
 
-      const data = await response.json();
-      this.mappingDatabase = data.data || [];
-
-      // Cache the database
-      await this.cache.set(
-        'animeMapping',
-        { malId: 'database', entries: this.mappingDatabase },
-        this.cache.CACHE_DURATION.mapping,
+      // Find best match based on title similarity and year
+      const bestMatch = this.findBestMatch(
+        malAnime,
+        traktResults,
+        'mal-to-trakt',
       );
 
-      this.isLoaded = true;
+      if (bestMatch) {
+        // Cache the mapping
+        await this.cache.set(
+          'animeMapping',
+          {
+            malId: cacheKey,
+            traktSlug: bestMatch.show.ids.slug,
+            title: bestMatch.show.title,
+            year: bestMatch.show.year,
+          },
+          this.cache.CACHE_DURATION.mapping,
+        );
+
+        return bestMatch.show.ids.slug;
+      }
+
+      return null;
     } catch (error) {
-      console.error('Error loading mapping database:', error);
-      this.mappingDatabase = [];
-      this.isLoaded = true;
+      console.error('Error mapping MAL to Trakt:', error);
+      return null;
     }
   }
 
   /**
-   * Get Trakt ID from MAL ID
-   * @param {number} malId - MyAnimeList ID
-   * @returns {Promise<number|null>}
+   * Get MAL ID from Trakt show entry
+   * Searches MAL by title and matches based on title similarity and year
+   * @param {object} traktShow - Trakt show entry with { title, year, ids }
+   * @returns {Promise<number|null>} - MAL ID or null if not found
    */
-  async getTraktIdFromMAL(malId) {
-    await this.loadMappingDatabase();
+  async getMALIdFromTrakt(traktShow) {
+    if (!traktShow || !traktShow.title) {
+      return null;
+    }
 
-    const entry = this.mappingDatabase.find((anime) => {
-      if (!anime.sources) return false;
-      return anime.sources.some(
-        (source) =>
-          source.startsWith('https://myanimelist.net/anime/') &&
-          source.includes(`/${malId}`),
+    // Check cache first
+    const cacheKey = `trakt-${traktShow.ids.slug}`;
+    const cached = await this.cache.get('animeMapping', cacheKey);
+    if (cached && cached.malId) {
+      return cached.malId;
+    }
+
+    try {
+      // Search MAL by title
+      const searchTitle = traktShow.title;
+      const malResponse = await this.mal.searchAnime(searchTitle);
+      const malResults = malResponse?.data || [];
+
+      if (!malResults || malResults.length === 0) {
+        return null;
+      }
+
+      // Find best match based on title similarity and year
+      const bestMatch = this.findBestMatch(
+        traktShow,
+        malResults,
+        'trakt-to-mal',
       );
-    });
 
-    if (!entry || !entry.sources) return null;
+      if (bestMatch) {
+        const malId = bestMatch.node.id;
 
-    // Find Trakt URL in sources
-    const traktSource = entry.sources.find((source) =>
-      source.startsWith('https://trakt.tv/shows/'),
-    );
+        // Cache the mapping
+        await this.cache.set(
+          'animeMapping',
+          {
+            malId: cacheKey,
+            malId: malId,
+            title: bestMatch.node.title,
+            year: bestMatch.node.start_season?.year,
+          },
+          this.cache.CACHE_DURATION.mapping,
+        );
 
-    if (!traktSource) return null;
+        return malId;
+      }
 
-    // Extract Trakt slug from URL
-    const slug = traktSource.replace('https://trakt.tv/shows/', '');
-    return slug;
+      return null;
+    } catch (error) {
+      console.error('Error mapping Trakt to MAL:', error);
+      return null;
+    }
   }
 
   /**
-   * Get MAL ID from Trakt ID/slug
-   * @param {string} traktSlug - Trakt show slug
-   * @returns {Promise<number|null>}
+   * Find best match from search results
+   * @param {object} source - Source anime entry
+   * @param {Array} results - Search results
+   * @param {string} direction - 'mal-to-trakt' or 'trakt-to-mal'
+   * @returns {object|null} - Best matching result or null
    */
-  async getMALIdFromTrakt(traktSlug) {
-    await this.loadMappingDatabase();
+  findBestMatch(source, results, direction) {
+    let bestMatch = null;
+    let bestScore = 0;
 
-    const entry = this.mappingDatabase.find((anime) => {
-      if (!anime.sources) return false;
-      return anime.sources.some(
-        (source) =>
-          source.startsWith('https://trakt.tv/shows/') &&
-          source.includes(traktSlug),
-      );
-    });
+    for (const result of results) {
+      let score = 0;
+      let targetTitle, targetYear;
 
-    if (!entry || !entry.sources) return null;
+      if (direction === 'mal-to-trakt') {
+        targetTitle = result.show.title;
+        targetYear = result.show.year;
+      } else {
+        targetTitle = result.node.title;
+        targetYear = result.node.start_season?.year;
+      }
 
-    // Find MAL URL in sources
-    const malSource = entry.sources.find((source) =>
-      source.startsWith('https://myanimelist.net/anime/'),
-    );
+      // Calculate title similarity
+      const titleSimilarity = this.calculateSimilarity(source.title, targetTitle);
+      score += titleSimilarity * 0.7; // 70% weight on title match
 
-    if (!malSource) return null;
+      // Year match bonus
+      const sourceYear =
+        direction === 'mal-to-trakt' ? source.start_season?.year : source.year;
+      if (sourceYear && targetYear && sourceYear === targetYear) {
+        score += 0.3; // 30% weight on year match
+      }
 
-    // Extract MAL ID from URL
-    const match = malSource.match(/\/anime\/(\d+)/);
-    return match ? parseInt(match[1], 10) : null;
-  }
-
-  /**
-   * Search for anime by title (fuzzy matching)
-   * @param {string} title - Anime title to search for
-   * @returns {Promise<Array>}
-   */
-  async searchByTitle(title) {
-    await this.loadMappingDatabase();
-
-    const searchTitle = title.toLowerCase();
-
-    const results = this.mappingDatabase
-      .filter((anime) => {
-        if (!anime.title) return false;
-
-        // Check main title
-        if (anime.title.toLowerCase().includes(searchTitle)) {
-          return true;
+      // Check alternative titles if available
+      if (direction === 'mal-to-trakt' && source.alternative_titles) {
+        const altTitles = Object.values(source.alternative_titles).flat();
+        for (const altTitle of altTitles) {
+          const altSimilarity = this.calculateSimilarity(altTitle, targetTitle);
+          if (altSimilarity > titleSimilarity) {
+            score = score - titleSimilarity * 0.7 + altSimilarity * 0.7;
+            break;
+          }
         }
+      }
 
-        // Check alternative titles (synonyms)
-        if (anime.synonyms && anime.synonyms.length > 0) {
-          return anime.synonyms.some((synonym) =>
-            synonym.toLowerCase().includes(searchTitle),
-          );
-        }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = result;
+      }
+    }
 
-        return false;
-      })
-      .slice(0, 10); // Limit to 10 results
-
-    return results.map((anime) => ({
-      title: anime.title,
-      malId: this.extractMALId(anime),
-      traktSlug: this.extractTraktSlug(anime),
-      synonyms: anime.synonyms || [],
-    }));
-  }
-
-  /**
-   * Extract MAL ID from anime entry
-   * @param {object} anime - Anime entry from database
-   * @returns {number|null}
-   */
-  extractMALId(anime) {
-    if (!anime.sources) return null;
-
-    const malSource = anime.sources.find((source) =>
-      source.startsWith('https://myanimelist.net/anime/'),
-    );
-
-    if (!malSource) return null;
-
-    const match = malSource.match(/\/anime\/(\d+)/);
-    return match ? parseInt(match[1], 10) : null;
-  }
-
-  /**
-   * Extract Trakt slug from anime entry
-   * @param {object} anime - Anime entry from database
-   * @returns {string|null}
-   */
-  extractTraktSlug(anime) {
-    if (!anime.sources) return null;
-
-    const traktSource = anime.sources.find((source) =>
-      source.startsWith('https://trakt.tv/shows/'),
-    );
-
-    if (!traktSource) return null;
-
-    return traktSource.replace('https://trakt.tv/shows/', '');
+    // Require at least 70% similarity to consider it a match
+    return bestScore >= 0.7 ? bestMatch : null;
   }
 
   /**
@@ -196,12 +190,19 @@ export default class MappingService extends Service {
    * @returns {number} Similarity score (0-1)
    */
   calculateSimilarity(str1, str2) {
-    const s1 = str1.toLowerCase();
-    const s2 = str2.toLowerCase();
+    if (!str1 || !str2) return 0;
+
+    const s1 = str1.toLowerCase().trim();
+    const s2 = str2.toLowerCase().trim();
 
     if (s1 === s2) return 1.0;
 
-    // Simple Levenshtein distance based similarity
+    // Exact substring match gets high score
+    if (s1.includes(s2) || s2.includes(s1)) {
+      return 0.85;
+    }
+
+    // Levenshtein distance based similarity
     const longer = s1.length > s2.length ? s1 : s2;
     const shorter = s1.length > s2.length ? s2 : s1;
 
@@ -243,5 +244,13 @@ export default class MappingService extends Service {
     }
 
     return matrix[str2.length][str1.length];
+  }
+
+  /**
+   * Clear all cached mappings
+   * @returns {Promise<void>}
+   */
+  async clearMappings() {
+    await this.cache.clearStore('animeMapping');
   }
 }

@@ -23,6 +23,9 @@
 !.env.*.example
 !.env.development
 
+# public assets
+/public/anime-offline-database.json
+
 # ember-try
 /.node_modules.ember-try/
 /npm-shrinkwrap.json.ember-try
