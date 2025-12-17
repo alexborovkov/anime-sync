@@ -1,0 +1,21 @@
+{
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": true,
+  "files.associations": {
+    "*.gjs": "javascript",
+    "*.gts": "typescript"
+  },
+  "emmet.includeLanguages": {
+    "gjs": "html",
+    "gts": "html"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "gjs"
+  ],
+  "[gjs]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

@@ -50,11 +50,14 @@ export default [
   {
     files: ['**/*.js'],
     languageOptions: {
-      parser: babelParser,
+      parserOptions: esmParserOptions,
+      globals: {
+        ...globals.browser,
+      },
     },
   },
   {
-    files: ['**/*.{js,gjs}'],
+    files: ['**/*.gjs'],
     languageOptions: {
       parserOptions: esmParserOptions,
       globals: {
