@@ -1,6 +1,5 @@
 import { pageTitle } from 'ember-page-title';
 import { LinkTo } from '@ember/routing';
-import { service } from '@ember/service';
 
 <template>
   {{pageTitle "Trakt ↔ MyAnimeList Sync"}}

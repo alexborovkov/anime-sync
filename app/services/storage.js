@@ -48,6 +48,7 @@ export default class StorageService extends Service {
    * @param {string} value - Token value
    */
   setToken(key, value) {
+    // eslint-disable-next-line ember/classic-decorator-no-classic-methods
     this.set(key, value);
   }
 
@@ -57,6 +58,7 @@ export default class StorageService extends Service {
    * @returns {string|null} The token or null
    */
   getToken(key) {
+    // eslint-disable-next-line ember/classic-decorator-no-classic-methods
     return this.get(key);
   }
 
@@ -81,6 +83,7 @@ export default class StorageService extends Service {
    * @returns {boolean} True if expired
    */
   isTokenExpired(expiryKey) {
+    // eslint-disable-next-line ember/classic-decorator-no-classic-methods
     const expiresAt = this.get(expiryKey);
     if (!expiresAt) return true;
 
