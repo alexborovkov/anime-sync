@@ -50,7 +50,14 @@ export default [
   {
     files: ['**/*.js'],
     languageOptions: {
-      parserOptions: esmParserOptions,
+      parser: babelParser,
+      parserOptions: {
+        ...esmParserOptions,
+        requireConfigFile: true,
+        babelOptions: {
+          configFile: './.eslintrc.babel.cjs',
+        },
+      },
       globals: {
         ...globals.browser,
       },
