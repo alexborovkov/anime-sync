@@ -1,9 +1,69 @@
 import { pageTitle } from 'ember-page-title';
+import RouteTemplate from 'ember-route-template';
+import Component from '@glimmer/component';
+import { service } from '@ember/service';
+import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { LinkTo } from '@ember/routing';
 import ConnectionCard from 'trakt-mal-sync/components/connection-card';
 
-<template>
+class SettingsComponent extends Component {
+  @service oauth;
+  @service storage;
+  @service cache;
+
+    get isAuthenticatedTrakt() {
+      return this.oauth.isAuthenticatedTrakt;
+    }
+
+    get isAuthenticatedMAL() {
+      return this.oauth.isAuthenticatedMAL;
+    }
+
+    @action
+    async connectTrakt() {
+      await this.oauth.initiateTraktAuth();
+    }
+
+    @action
+    async connectMAL() {
+      await this.oauth.initiateMALAuth();
+    }
+
+    @action
+    disconnectTrakt() {
+      if (confirm('Are you sure you want to disconnect Trakt? This will remove all stored tokens.')) {
+        this.oauth.logoutTrakt();
+        window.location.reload();
+      }
+    }
+
+    @action
+    disconnectMAL() {
+      if (confirm('Are you sure you want to disconnect MyAnimeList? This will remove all stored tokens.')) {
+        this.oauth.logoutMAL();
+        window.location.reload();
+      }
+    }
+
+    @action
+    async clearCache() {
+      if (confirm('Are you sure you want to clear all cached data? This will require re-fetching data from APIs.')) {
+        await this.cache.clearAll();
+        alert('Cache cleared successfully!');
+      }
+    }
+
+    @action
+    clearAll() {
+      if (confirm('Are you sure you want to clear ALL data including tokens and cache? You will need to reconnect your accounts.')) {
+        this.oauth.logoutAll();
+        this.storage.clearAll();
+        window.location.reload();
+      }
+    }
+
+    <template>
       {{pageTitle "Settings"}}
 
       <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue">
@@ -110,4 +170,7 @@ import ConnectionCard from 'trakt-mal-sync/components/connection-card';
 
         </div>
       </div>
-</template>
+    </template>
+}
+
+export default RouteTemplate(SettingsComponent);

@@ -2,7 +2,6 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 export default class SyncPreviewRoute extends Route {
-  @service syncEngine;
   @service oauth;
   @service router;
 
@@ -11,14 +10,5 @@ export default class SyncPreviewRoute extends Route {
     if (!this.oauth.isAuthenticatedTrakt || !this.oauth.isAuthenticatedMAL) {
       this.router.transitionTo('dashboard');
     }
-  }
-
-  async model() {
-    return {
-      direction: null,
-      operations: [],
-      loading: false,
-      error: null,
-    };
   }
 }

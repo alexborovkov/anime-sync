@@ -2,7 +2,6 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 export default class SyncProgressRoute extends Route {
-  @service syncEngine;
   @service oauth;
   @service router;
 
@@ -22,7 +21,7 @@ export default class SyncProgressRoute extends Route {
     let operations = [];
     try {
       operations = params.operations ? JSON.parse(params.operations) : [];
-    } catch (e) {
+    } catch {
       operations = [];
     }
 

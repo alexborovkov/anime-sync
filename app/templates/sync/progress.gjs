@@ -1,12 +1,70 @@
 import { pageTitle } from 'ember-page-title';
+import RouteTemplate from 'ember-route-template';
+import Component from '@glimmer/component';
+import { service } from '@ember/service';
+import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 import { gt } from 'ember-truth-helpers';
+import { fn } from '@ember/helper';
+import { on } from '@ember/modifier';
 
-<template>
+class SyncProgressComponent extends Component {
+  @service syncEngine;
+  @service router;
+
+  @tracked results = null;
+  @tracked syncing = false;
+  @tracked hasStarted = false;
+
+  @action
+  async startSync(model) {
+      if (this.syncing || this.hasStarted) return;
+      if (!model?.operations || model.operations.length === 0) return;
+
+      this.hasStarted = true;
+      this.syncing = true;
+
+      try {
+        this.results = await this.syncEngine.executeSyncOperations(
+          model.operations,
+          () => {
+            // Progress callback - updates are handled by service's tracked properties
+          },
+        );
+      } catch (err) {
+        this.results = {
+          error: err.message,
+        };
+      } finally {
+        this.syncing = false;
+        // Redirect to results page after 1 second
+        setTimeout(() => {
+          this.router.transitionTo('sync.results', {
+            queryParams: {
+              results: JSON.stringify(this.results),
+            },
+          });
+        }, 1000);
+      }
+    }
+
+    get shouldAutoStart() {
+      return !this.syncing && !this.hasStarted;
+    }
+
+    get progressPercent() {
+      if (!this.syncEngine.syncTotal) return 0;
+      return Math.round(
+        (this.syncEngine.syncProgress / this.syncEngine.syncTotal) * 100,
+      );
+    }
+
+    <template>
       {{pageTitle "Syncing..."}}
 
       {{! Auto-start sync when model is available }}
       {{#if this.shouldAutoStart}}
-        {{this.startSync}}
+        {{this.startSync @model}}
       {{/if}}
 
       <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue flex items-center justify-center">
@@ -72,4 +130,7 @@ import { gt } from 'ember-truth-helpers';
 
         </div>
       </div>
-</template>
+    </template>
+}
+
+export default RouteTemplate(SyncProgressComponent);

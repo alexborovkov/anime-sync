@@ -1,10 +1,57 @@
 import { pageTitle } from 'ember-page-title';
+import RouteTemplate from 'ember-route-template';
+import Component from '@glimmer/component';
+import { service } from '@ember/service';
 import { LinkTo } from '@ember/routing';
+import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { and } from 'ember-truth-helpers';
 import ConnectionCard from 'trakt-mal-sync/components/connection-card';
 
-<template>
+class DashboardComponent extends Component {
+  @service oauth;
+  @service router;
+
+    get isAuthenticatedTrakt() {
+      return this.oauth.isAuthenticatedTrakt;
+    }
+
+    get isAuthenticatedMAL() {
+      return this.oauth.isAuthenticatedMAL;
+    }
+
+    @action
+    async connectTrakt() {
+      await this.oauth.initiateTraktAuth();
+    }
+
+    @action
+    async connectMAL() {
+      await this.oauth.initiateMALAuth();
+    }
+
+    @action
+    disconnectTrakt() {
+      if (confirm('Are you sure you want to disconnect Trakt?')) {
+        this.oauth.logoutTrakt();
+        window.location.reload();
+      }
+    }
+
+    @action
+    disconnectMAL() {
+      if (confirm('Are you sure you want to disconnect MyAnimeList?')) {
+        this.oauth.logoutMAL();
+        window.location.reload();
+      }
+    }
+
+    @action
+    goToSync() {
+      this.router.transitionTo('sync.preview');
+    }
+
+    <template>
       {{pageTitle "Dashboard"}}
 
       <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue">
@@ -119,4 +166,7 @@ import ConnectionCard from 'trakt-mal-sync/components/connection-card';
 
         </div>
       </div>
-</template>
+    </template>
+}
+
+export default RouteTemplate(DashboardComponent);

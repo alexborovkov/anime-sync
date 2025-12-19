@@ -9,7 +9,7 @@ export default class SyncResultsRoute extends Route {
     let results = null;
     try {
       results = params.results ? JSON.parse(params.results) : null;
-    } catch (e) {
+    } catch {
       results = null;
     }
 

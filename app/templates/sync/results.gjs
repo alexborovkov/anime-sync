@@ -1,8 +1,11 @@
 import { pageTitle } from 'ember-page-title';
+import RouteTemplate from 'ember-route-template';
+import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 import { eq } from 'ember-truth-helpers';
 
-<template>
+class SyncResultsComponent extends Component {
+  <template>
     {{pageTitle "Sync Results"}}
 
     <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue">
@@ -145,4 +148,7 @@ import { eq } from 'ember-truth-helpers';
 
       </div>
     </div>
-</template>
+  </template>
+}
+
+export default RouteTemplate(SyncResultsComponent);

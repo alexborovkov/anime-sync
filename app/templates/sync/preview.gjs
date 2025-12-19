@@ -1,10 +1,68 @@
 import { pageTitle } from 'ember-page-title';
+import RouteTemplate from 'ember-route-template';
+import Component from '@glimmer/component';
+import { service } from '@ember/service';
+import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { fn } from '@ember/helper';
 import { LinkTo } from '@ember/routing';
 import { eq } from 'ember-truth-helpers';
 
-<template>
+class SyncPreviewComponent extends Component {
+  @service syncEngine;
+  @service router;
+
+  @tracked direction = null;
+    @tracked operations = [];
+    @tracked loading = false;
+    @tracked error = null;
+
+    @action
+    async analyzeSync(direction) {
+      this.direction = direction;
+      this.loading = true;
+      this.error = null;
+
+      try {
+        this.operations = await this.syncEngine.analyzeDifferences(direction);
+      } catch (err) {
+        this.error = err.message;
+      } finally {
+        this.loading = false;
+      }
+    }
+
+    @action
+    startSync() {
+      this.router.transitionTo('sync.progress', {
+        queryParams: {
+          direction: this.direction,
+          operations: JSON.stringify(this.operations),
+        },
+      });
+    }
+
+    @action
+    cancel() {
+      this.direction = null;
+      this.operations = [];
+      this.error = null;
+    }
+
+    get hasOperations() {
+      return this.operations && this.operations.length > 0;
+    }
+
+    get syncableOperations() {
+      return this.operations.filter((op) => op.type !== 'unmapped');
+    }
+
+    get unmappedCount() {
+      return this.operations.filter((op) => op.type === 'unmapped').length;
+    }
+
+    <template>
       {{pageTitle "Sync Preview"}}
 
       <div class="min-h-screen bg-gradient-to-br from-trakt-dark via-gray-900 to-mal-blue">
@@ -162,4 +220,7 @@ import { eq } from 'ember-truth-helpers';
 
         </div>
       </div>
-</template>
+    </template>
+}
+
+export default RouteTemplate(SyncPreviewComponent);
