@@ -23,15 +23,20 @@ export default class SyncEngineService extends Service {
    */
   async analyzeDifferences(direction) {
     this.syncStatus = 'analyzing';
+    this.syncProgress = 0;
+    this.syncTotal = 0;
 
     try {
       // Fetch data from both services
+      this.currentOperation = 'Fetching anime lists...';
       const [traktData, malData] = await Promise.all([
         this.trakt.getWatchedShows(),
         this.mal.getAllAnime(),
       ]);
 
       // Map the data
+      this.currentOperation = 'Matching anime between services...';
+      this.syncTotal = traktData.length + malData.length;
       const mappedData = await this.mapEntries(traktData, malData);
 
       // Calculate differences
@@ -80,6 +85,8 @@ export default class SyncEngineService extends Service {
       if (malId) {
         malMap.delete(malId);
       }
+
+      this.syncProgress++;
     }
 
     // Add remaining MAL entries that weren't matched
@@ -94,6 +101,8 @@ export default class SyncEngineService extends Service {
         malData: malEntry,
         mapped: !!traktSlug,
       });
+
+      this.syncProgress++;
     }
 
     return mapped;

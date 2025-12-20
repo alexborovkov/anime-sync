@@ -65,6 +65,11 @@ class SyncPreviewComponent extends Component {
       return this.operations.filter((op) => op.type === 'unmapped').length;
     }
 
+    get progressPercentage() {
+      if (!this.syncEngine.syncTotal) return 0;
+      return Math.round((this.syncEngine.syncProgress / this.syncEngine.syncTotal) * 100);
+    }
+
     <template>
       {{pageTitle "Sync Preview"}}
 
@@ -122,7 +127,20 @@ class SyncPreviewComponent extends Component {
                 <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
               </div>
               <h3 class="text-xl font-bold text-white mb-2">Analyzing your lists...</h3>
-              <p class="text-gray-400">This may take a few moments</p>
+              <p class="text-gray-400 mb-4">{{this.syncEngine.currentOperation}}</p>
+              {{#if (gt this.syncEngine.syncTotal 0)}}
+                <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                  <div
+                    class="bg-gradient-to-r from-trakt-red to-mal-lightblue h-2 rounded-full transition-all"
+                    style="width: {{this.progressPercentage}}%"
+                  ></div>
+                </div>
+                <p class="text-sm text-gray-400">
+                  {{this.syncEngine.syncProgress}} / {{this.syncEngine.syncTotal}} items processed
+                </p>
+              {{else}}
+                <p class="text-gray-400">This may take a few moments</p>
+              {{/if}}
             </div>
           {{/if}}
 
@@ -199,6 +217,36 @@ class SyncPreviewComponent extends Component {
 
                 </div>
               </div>
+
+              {{! Unmapped Items }}
+              {{#if this.unmappedCount}}
+                <div class="bg-yellow-900/30 border border-yellow-600 rounded-lg p-6 mb-6">
+                  <h3 class="text-xl font-bold text-yellow-400 mb-2 flex items-center gap-2">
+                    <span>⚠️</span>
+                    No Mapping Found ({{this.unmappedCount}} items)
+                  </h3>
+                  <p class="text-gray-300 mb-4 text-sm">
+                    These items couldn't be automatically matched. They will be skipped during sync.
+                  </p>
+                  <details class="cursor-pointer">
+                    <summary class="text-yellow-400 hover:text-yellow-300 font-medium mb-2">
+                      Show unmapped items
+                    </summary>
+                    <div class="space-y-2 mt-4 max-h-64 overflow-y-auto">
+                      {{#each this.operations as |op|}}
+                        {{#if (eq op.type "unmapped")}}
+                          <div class="bg-gray-800/50 rounded p-3">
+                            <h4 class="text-white font-medium text-sm">{{op.entry.title}}</h4>
+                            <p class="text-xs text-gray-400 mt-1">
+                              Could not find matching anime on {{#if (eq this.direction "trakt-to-mal")}}MyAnimeList{{else}}Trakt{{/if}}
+                            </p>
+                          </div>
+                        {{/if}}
+                      {{/each}}
+                    </div>
+                  </details>
+                </div>
+              {{/if}}
 
               {{! Actions }}
               <div class="flex gap-4 justify-end">
