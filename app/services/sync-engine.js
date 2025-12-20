@@ -63,7 +63,7 @@ export default class SyncEngineService extends Service {
     // Process each Trakt entry
     for (const traktShow of traktData) {
       const traktId = traktShow.show.ids.slug;
-      const malId = await this.mapping.getMALIdFromTrakt(traktId);
+      const malId = await this.mapping.getMALIdFromTrakt(traktShow.show);
 
       const malEntry = malId ? malMap.get(malId) : null;
 
@@ -84,7 +84,7 @@ export default class SyncEngineService extends Service {
 
     // Add remaining MAL entries that weren't matched
     for (const [malId, malEntry] of malMap.entries()) {
-      const traktSlug = await this.mapping.getTraktIdFromMAL(malId);
+      const traktSlug = await this.mapping.getTraktSlugFromMAL(malEntry.node);
 
       mapped.push({
         traktId: traktSlug,
