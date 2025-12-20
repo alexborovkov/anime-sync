@@ -14,8 +14,21 @@
     "javascriptreact",
     "gjs"
   ],
-  "[gjs]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "javascript.suggest.paths": true,
+  "javascript.suggest.autoImports": true,
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifierEnding": "auto",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
   },
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "[gjs]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  }
 }

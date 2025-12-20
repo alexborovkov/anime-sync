@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "lib": ["es2022", "dom"],
     "allowJs": true,
     "checkJs": false,
@@ -10,16 +10,19 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "trakt-mal-sync/*": ["app/*"],
-      "*": ["node_modules/*"]
+      "trakt-mal-sync/*": ["./app/*"],
+      "trakt-mal-sync/config/environment": ["./config/environment.js"],
+      "*": ["./node_modules/*"]
     }
   },
   "include": [
     "app/**/*",
     "tests/**/*",
-    "config/**/*"
+    "config/**/*",
+    "vite.config.mjs"
   ],
   "exclude": [
     "node_modules",
