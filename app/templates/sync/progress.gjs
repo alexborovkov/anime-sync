@@ -7,8 +7,11 @@ import { tracked } from '@glimmer/tracking';
 import { gt } from 'ember-truth-helpers';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
+// eslint-disable-next-line no-unused-vars
+import SyncEngineService from 'trakt-mal-sync/services/sync-engine';
 
 class SyncProgressComponent extends Component {
+  /** @type {SyncEngineService} */
   @service syncEngine;
   @service router;
 

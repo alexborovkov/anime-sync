@@ -7,8 +7,11 @@ import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { and } from 'ember-truth-helpers';
 import ConnectionCard from 'trakt-mal-sync/components/connection-card';
+// eslint-disable-next-line no-unused-vars
+import OAuthService from 'trakt-mal-sync/services/oauth';
 
 class DashboardComponent extends Component {
+  /** @type {OAuthService} */
   @service oauth;
   @service router;
 

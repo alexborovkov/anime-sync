@@ -6,10 +6,19 @@ import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { LinkTo } from '@ember/routing';
 import ConnectionCard from 'trakt-mal-sync/components/connection-card';
+// eslint-disable-next-line no-unused-vars
+import OAuthService from 'trakt-mal-sync/services/oauth';
+// eslint-disable-next-line no-unused-vars
+import StorageService from 'trakt-mal-sync/services/storage';
+// eslint-disable-next-line no-unused-vars
+import CacheService from 'trakt-mal-sync/services/cache';
 
 class SettingsComponent extends Component {
+  /** @type {OAuthService} */
   @service oauth;
+  /** @type {StorageService} */
   @service storage;
+  /** @type {CacheService} */
   @service cache;
 
     get isAuthenticatedTrakt() {
