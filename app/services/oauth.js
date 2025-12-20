@@ -35,10 +35,10 @@ export default class OAuthService extends Service {
 
   /**
    * Generate a random code verifier for PKCE
-   * @returns {string} Base64URL encoded random string
+   * @returns {string} Base64URL encoded random string (96 bytes = ~128 chars for MAL)
    */
   generateCodeVerifier() {
-    const array = new Uint8Array(32);
+    const array = new Uint8Array(96);
     crypto.getRandomValues(array);
     return this.base64URLEncode(array);
   }
@@ -61,7 +61,12 @@ export default class OAuthService extends Service {
    * @returns {string} Base64URL encoded string
    */
   base64URLEncode(buffer) {
-    return btoa(String.fromCharCode(...buffer))
+    // Convert buffer to binary string more reliably
+    let binary = '';
+    for (let i = 0; i < buffer.length; i++) {
+      binary += String.fromCharCode(buffer[i]);
+    }
+    return btoa(binary)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '');
@@ -82,8 +87,15 @@ export default class OAuthService extends Service {
    */
   async initiateMALAuth() {
     const codeVerifier = this.generateCodeVerifier();
-    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+    // MAL only supports "plain" PKCE method, not S256
+    const codeChallenge = codeVerifier; // plain method: challenge = verifier
     const state = this.generateState();
+
+    console.log('🔍 MAL Auth - PKCE Setup (plain method):');
+    console.log('  - code_verifier:', codeVerifier);
+    console.log('  - code_verifier length:', codeVerifier.length);
+    console.log('  - code_challenge:', codeChallenge);
+    console.log('  - code_challenge_method: plain');
 
     // Save verifier and state for callback
     sessionStorage.setItem('mal_code_verifier', codeVerifier);
@@ -93,10 +105,12 @@ export default class OAuthService extends Service {
       response_type: 'code',
       client_id: config.APP.MAL_CLIENT_ID,
       code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      code_challenge_method: 'plain',
       state,
       redirect_uri: `${config.APP.APP_URL}/auth/mal-callback`,
     });
+
+    console.log('🔍 Redirecting to MAL with URL:', `${config.APP.MAL_AUTH_URL}?${params}`);
 
     window.location.href = `${config.APP.MAL_AUTH_URL}?${params}`;
   }
@@ -118,11 +132,18 @@ export default class OAuthService extends Service {
       throw new Error('Code verifier not found');
     }
 
-    // Exchange code for tokens
-    const response = await fetch(config.APP.MAL_TOKEN_URL, {
+    console.log('🔍 MAL Callback - PKCE Debug:');
+    console.log('  - code_verifier from sessionStorage:', codeVerifier);
+    console.log('  - code_verifier length:', codeVerifier.length);
+    console.log('  - Regenerating code_challenge to verify...');
+    const testChallenge = await this.generateCodeChallenge(codeVerifier);
+    console.log('  - code_challenge would be:', testChallenge);
+
+    // Exchange code for tokens via proxy to avoid CORS
+    const response = await fetch('/api/mal-token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         client_id: config.APP.MAL_CLIENT_ID,
         code,
         code_verifier: codeVerifier,
@@ -164,10 +185,10 @@ export default class OAuthService extends Service {
       throw new Error('No refresh token available');
     }
 
-    const response = await fetch(config.APP.MAL_TOKEN_URL, {
+    const response = await fetch('/api/mal-token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         client_id: config.APP.MAL_CLIENT_ID,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',

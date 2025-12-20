@@ -26,9 +26,9 @@ module.exports = function (environment) {
 
       // OAuth URLs
       TRAKT_AUTH_URL: 'https://trakt.tv/oauth/authorize',
-      TRAKT_TOKEN_URL: '/api/trakt-token',  // Serverless function
+      TRAKT_TOKEN_URL: '/api/trakt-token',  // Proxied through Vite middleware
       MAL_AUTH_URL: 'https://myanimelist.net/v1/oauth2/authorize',
-      MAL_TOKEN_URL: 'https://myanimelist.net/v1/oauth2/token',
+      MAL_TOKEN_URL: '/api/mal-token',  // Proxied through Vite middleware to avoid CORS
     },
   };
 
