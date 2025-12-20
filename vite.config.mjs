@@ -123,6 +123,38 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
+            // Proxy MAL API requests to avoid CORS
+            if (req.url.startsWith('/api/mal/')) {
+              const malPath = req.url.replace('/api/mal/', '');
+              const malUrl = `https://api.myanimelist.net/v2/${malPath}`;
+
+              try {
+                const malResponse = await fetch(malUrl, {
+                  method: req.method,
+                  headers: {
+                    'Authorization': req.headers.authorization || '',
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const data = await malResponse.json();
+
+                res.writeHead(malResponse.status, {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*'
+                });
+                res.end(JSON.stringify(data));
+              } catch (error) {
+                console.error('MAL API proxy error:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  error: 'Internal server error',
+                  message: error.message
+                }));
+              }
+              return;
+            }
+
             next();
           });
         }

@@ -22,7 +22,7 @@ module.exports = function (environment) {
 
       // API Endpoints
       TRAKT_API_BASE_URL: 'https://api.trakt.tv',
-      MAL_API_BASE_URL: 'https://api.myanimelist.net/v2',
+      MAL_API_BASE_URL: '/api/mal',  // Proxied through Vite middleware to avoid CORS
 
       // OAuth URLs
       TRAKT_AUTH_URL: 'https://trakt.tv/oauth/authorize',
