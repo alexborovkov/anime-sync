@@ -12,7 +12,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "types": [],
     "baseUrl": ".",
     "paths": {
       "trakt-mal-sync/*": ["./app/*"],
@@ -23,6 +22,6 @@
   "glint": {
     "environment": ["ember-loose", "ember-template-imports"]
   },
-  "include": ["app/**/*", "tests/**/*", "config/**/*"],
+  "include": ["app/**/*", "tests/**/*", "config/**/*", "types/**/*"],
   "exclude": ["node_modules", "dist", "tmp"]
 }
