@@ -7,7 +7,7 @@ import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { fn } from '@ember/helper';
 import { LinkTo } from '@ember/routing';
-import { eq } from 'ember-truth-helpers';
+import { eq, gt } from 'ember-truth-helpers';
 // eslint-disable-next-line no-unused-vars
 import SyncEngineService from 'trakt-mal-sync/services/sync-engine';
 
