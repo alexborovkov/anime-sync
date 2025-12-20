@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
+    "types": [],
     "baseUrl": ".",
     "paths": {
       "trakt-mal-sync/*": ["./app/*"],
