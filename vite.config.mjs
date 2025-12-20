@@ -7,12 +7,6 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
 
-  console.log('🔍 Vite Mode:', mode);
-  console.log('🔍 TRAKT_CLIENT_ID from loadEnv:', env.TRAKT_CLIENT_ID);
-  console.log('🔍 TRAKT_CLIENT_SECRET from loadEnv:', env.TRAKT_CLIENT_SECRET ? '***' : 'NOT SET');
-  console.log('🔍 MAL_CLIENT_ID from loadEnv:', env.MAL_CLIENT_ID);
-  console.log('🔍 MAL_CLIENT_SECRET from loadEnv:', env.MAL_CLIENT_SECRET ? '***' : 'NOT SET');
-
   // Make env vars available to Node process for Ember's config/environment.js
   process.env.TRAKT_CLIENT_ID = env.TRAKT_CLIENT_ID;
   process.env.MAL_CLIENT_ID = env.MAL_CLIENT_ID;
@@ -101,14 +95,6 @@ export default defineConfig(({ mode }) => {
                 // MAL requires client_secret in body + X-MAL-Client-ID header
                 params.client_secret = env.MAL_CLIENT_SECRET;
 
-                console.log('🔍 Sending to MAL API with X-MAL-Client-ID header:');
-                console.log('  - client_id:', params.client_id);
-                console.log('  - client_id length:', params.client_id?.length);
-                console.log('  - client_secret length:', params.client_secret?.length);
-                console.log('  - client_secret first 10 chars:', params.client_secret?.substring(0, 10));
-                console.log('  - grant_type:', params.grant_type);
-                console.log('  - code_verifier length:', params.code_verifier?.length);
-
                 // Forward the request to MAL with required X-MAL-Client-ID header
                 const tokenResponse = await fetch('https://myanimelist.net/v1/oauth2/token', {
                   method: 'POST',
@@ -120,10 +106,6 @@ export default defineConfig(({ mode }) => {
                 });
 
                 const data = await tokenResponse.json();
-
-                console.log('🔍 MAL API Response:');
-                console.log('  - Status:', tokenResponse.status);
-                console.log('  - Data:', data);
 
                 res.writeHead(tokenResponse.status, {
                   'Content-Type': 'application/json',

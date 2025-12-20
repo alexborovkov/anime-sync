@@ -91,12 +91,6 @@ export default class OAuthService extends Service {
     const codeChallenge = codeVerifier; // plain method: challenge = verifier
     const state = this.generateState();
 
-    console.log('🔍 MAL Auth - PKCE Setup (plain method):');
-    console.log('  - code_verifier:', codeVerifier);
-    console.log('  - code_verifier length:', codeVerifier.length);
-    console.log('  - code_challenge:', codeChallenge);
-    console.log('  - code_challenge_method: plain');
-
     // Save verifier and state for callback
     sessionStorage.setItem('mal_code_verifier', codeVerifier);
     sessionStorage.setItem('mal_oauth_state', state);
@@ -109,8 +103,6 @@ export default class OAuthService extends Service {
       state,
       redirect_uri: `${config.APP.APP_URL}/auth/mal-callback`,
     });
-
-    console.log('🔍 Redirecting to MAL with URL:', `${config.APP.MAL_AUTH_URL}?${params}`);
 
     window.location.href = `${config.APP.MAL_AUTH_URL}?${params}`;
   }
@@ -131,13 +123,6 @@ export default class OAuthService extends Service {
     if (!codeVerifier) {
       throw new Error('Code verifier not found');
     }
-
-    console.log('🔍 MAL Callback - PKCE Debug:');
-    console.log('  - code_verifier from sessionStorage:', codeVerifier);
-    console.log('  - code_verifier length:', codeVerifier.length);
-    console.log('  - Regenerating code_challenge to verify...');
-    const testChallenge = await this.generateCodeChallenge(codeVerifier);
-    console.log('  - code_challenge would be:', testChallenge);
 
     // Exchange code for tokens via proxy to avoid CORS
     const response = await fetch('/api/mal-token', {
