@@ -6,7 +6,7 @@ import Service from '@ember/service';
  */
 export default class CacheService extends Service {
   dbName = 'TraktMALSync';
-  dbVersion = 1;
+  dbVersion = 2;  // Increment version to trigger upgrade
   db = null;
 
   // Cache durations in milliseconds
@@ -49,14 +49,18 @@ export default class CacheService extends Service {
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
 
-        // Create object store for anime mapping
-        if (!db.objectStoreNames.contains('animeMapping')) {
-          const mappingStore = db.createObjectStore('animeMapping', {
-            keyPath: 'malId',
-          });
-          mappingStore.createIndex('traktId', 'traktId', { unique: false });
-          mappingStore.createIndex('title', 'title', { unique: false });
+        // Delete old mapping store if it exists (schema change)
+        if (db.objectStoreNames.contains('animeMapping')) {
+          db.deleteObjectStore('animeMapping');
         }
+
+        // Create object store for anime mapping with 'id' as keyPath
+        const mappingStore = db.createObjectStore('animeMapping', {
+          keyPath: 'id',  // Changed from 'malId' to 'id'
+        });
+        mappingStore.createIndex('malId', 'malId', { unique: false });
+        mappingStore.createIndex('traktId', 'traktId', { unique: false });
+        mappingStore.createIndex('title', 'title', { unique: false });
 
         // Create object store for Trakt data cache
         if (!db.objectStoreNames.contains('traktCache')) {
@@ -264,7 +268,7 @@ export default class CacheService extends Service {
       const items = await this.getAll(storeName);
       const expiredKeys = items
         .filter((item) => item.expiresAt && Date.now() >= item.expiresAt)
-        .map((item) => item.malId || item.userId || item.id);
+        .map((item) => item.id || item.userId);
 
       for (const key of expiredKeys) {
         await this.remove(storeName, key);

@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   // Make env vars available to Node process for Ember's config/environment.js
   process.env.TRAKT_CLIENT_ID = env.TRAKT_CLIENT_ID;
   process.env.MAL_CLIENT_ID = env.MAL_CLIENT_ID;
+  process.env.IDS_MOE_API_KEY = env.IDS_MOE_API_KEY;
   process.env.APP_URL = env.APP_URL;
 
   return {
@@ -19,6 +20,7 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.TRAKT_CLIENT_ID': JSON.stringify(env.TRAKT_CLIENT_ID || ''),
       'process.env.MAL_CLIENT_ID': JSON.stringify(env.MAL_CLIENT_ID || ''),
+      'process.env.IDS_MOE_API_KEY': JSON.stringify(env.IDS_MOE_API_KEY || ''),
       'process.env.APP_URL': JSON.stringify(env.APP_URL || 'http://localhost:4201'),
     },
     plugins: [

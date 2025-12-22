@@ -1,8 +1,10 @@
 import Service, { service } from '@ember/service';
+import config from 'trakt-mal-sync/config/environment';
+import { idsMoeLimiter } from 'trakt-mal-sync/utils/rate-limiter';
 
 /**
  * Mapping service for converting between Trakt and MAL IDs
- * Uses Trakt's search API to find anime by title
+ * Uses ids.moe API for direct ID lookups with fallback to title search
  * Caches successful mappings in IndexedDB
  */
 export default class MappingService extends Service {
@@ -12,7 +14,7 @@ export default class MappingService extends Service {
 
   /**
    * Get Trakt slug from MAL anime entry
-   * Searches Trakt by title and matches based on title similarity and year
+   * Uses ids.moe API for direct ID lookup, falls back to title search
    * @param {object} malAnime - MAL anime entry with { id, title, start_year, alternative_titles }
    * @returns {Promise<string|null>} - Trakt slug or null if not found
    */
@@ -29,7 +31,92 @@ export default class MappingService extends Service {
     }
 
     try {
-      // Search Trakt by title
+      // Try ids.moe API first
+      let traktSlug = null;
+
+      if (config.APP.IDS_MOE_API_KEY && malAnime.id) {
+        const externalIds = await this.getExternalIdsFromIdsMoe('myanimelist', malAnime.id);
+
+        // ids.moe returns Trakt ID directly
+        if (externalIds && externalIds.trakt) {
+          try {
+            const show = await this.trakt.getShow(externalIds.trakt);
+            if (show && show.ids) {
+              traktSlug = show.ids.slug;
+            }
+          } catch (error) {
+            console.error('Error getting Trakt show details:', error);
+          }
+        }
+      }
+
+      // If ids.moe didn't find a mapping, fall back to title search
+      if (!traktSlug) {
+        traktSlug = await this.getTraktSlugByTitleSearch(malAnime);
+      }
+
+      // Cache the mapping if found
+      if (traktSlug) {
+        await this.cache.set(
+          'animeMapping',
+          {
+            id: cacheKey,  // Use cacheKey as the id
+            malId: malAnime.id,
+            traktId: traktSlug,
+            title: malAnime.title,
+          },
+          this.cache.CACHE_DURATION.mapping,
+        );
+      }
+
+      return traktSlug;
+    } catch (error) {
+      console.error('Error mapping MAL to Trakt:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get external IDs from ids.moe API
+   * @param {string} sourceType - Source ID type (myanimelist, thetvdb, themoviedb, imdb, trakt)
+   * @param {number|string} sourceId - Source ID value
+   * @returns {Promise<object|null>} - Object with external IDs or null if not found
+   */
+  async getExternalIdsFromIdsMoe(sourceType, sourceId) {
+    if (!config.APP.IDS_MOE_API_KEY) {
+      return null;
+    }
+
+    try {
+      // ids.moe endpoint format: /ids/{id}?platform={platform} (rate limited)
+      const url = `${config.APP.IDS_MOE_API_BASE_URL}/ids/${sourceId}?platform=${sourceType}`;
+      const response = await idsMoeLimiter.throttle(async () => {
+        return fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching from ids.moe (${sourceType}:${sourceId}):`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get Trakt slug by searching Trakt API by title (fallback method)
+   * @param {object} malAnime - MAL anime entry
+   * @returns {Promise<string|null>} - Trakt slug or null if not found
+   */
+  async getTraktSlugByTitleSearch(malAnime) {
+    try {
       const searchTitle = malAnime.title;
       const traktResults = await this.trakt.searchShows(searchTitle, 'show');
 
@@ -44,32 +131,16 @@ export default class MappingService extends Service {
         'mal-to-trakt',
       );
 
-      if (bestMatch) {
-        // Cache the mapping
-        await this.cache.set(
-          'animeMapping',
-          {
-            malId: cacheKey,
-            traktSlug: bestMatch.show.ids.slug,
-            title: bestMatch.show.title,
-            year: bestMatch.show.year,
-          },
-          this.cache.CACHE_DURATION.mapping,
-        );
-
-        return bestMatch.show.ids.slug;
-      }
-
-      return null;
+      return bestMatch ? bestMatch.show.ids.slug : null;
     } catch (error) {
-      console.error('Error mapping MAL to Trakt:', error);
+      console.error('Error searching Trakt by title:', error);
       return null;
     }
   }
 
   /**
    * Get MAL ID from Trakt show entry
-   * Searches MAL by title and matches based on title similarity and year
+   * Uses ids.moe API for direct ID lookup, falls back to title search
    * @param {object} traktShow - Trakt show entry with { title, year, ids }
    * @returns {Promise<number|null>} - MAL ID or null if not found
    */
@@ -86,7 +157,140 @@ export default class MappingService extends Service {
     }
 
     try {
-      // Search MAL by title
+      let malId = null;
+
+      // Try ids.moe search by title first
+      if (config.APP.IDS_MOE_API_KEY && traktShow.title) {
+        malId = await this.searchIdsMoeByTitle(traktShow.title);
+      }
+
+      // If ids.moe didn't find a match, fall back to MAL title search
+      if (!malId) {
+        malId = await this.getMalIdByTitleSearch(traktShow);
+      }
+
+      // Cache the mapping if found
+      if (malId) {
+        await this.cache.set(
+          'animeMapping',
+          {
+            id: cacheKey,  // Use cacheKey as the id
+            malId: malId,
+            traktId: traktShow.ids.slug,
+            title: traktShow.title,
+            year: traktShow.year,
+          },
+          this.cache.CACHE_DURATION.mapping,
+        );
+      }
+
+      return malId;
+    } catch (error) {
+      console.error('Error mapping Trakt to MAL:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Search ids.moe by anime title
+   * @param {string} title - Anime title to search
+   * @returns {Promise<number|null>} - MAL ID or null if not found
+   */
+  async searchIdsMoeByTitle(title) {
+    if (!config.APP.IDS_MOE_API_KEY) {
+      return null;
+    }
+
+    try {
+      // Search ids.moe by title (rate limited)
+      const searchUrl = `${config.APP.IDS_MOE_API_BASE_URL}/search?q=${encodeURIComponent(title)}`;
+      const searchResponse = await idsMoeLimiter.throttle(async () => {
+        return fetch(searchUrl, {
+          headers: {
+            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      });
+
+      if (!searchResponse.ok) {
+        return null;
+      }
+
+      const searchData = await searchResponse.json();
+
+      // Get the top result
+      if (!searchData.results || searchData.results.length === 0) {
+        return null;
+      }
+
+      const topResult = searchData.results[0];
+
+      // Fetch all platform IDs using the internal ID (rate limited)
+      const idsUrl = `${config.APP.IDS_MOE_API_BASE_URL}/ids/${topResult.id}`;
+      const idsResponse = await idsMoeLimiter.throttle(async () => {
+        return fetch(idsUrl, {
+          headers: {
+            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      });
+
+      if (!idsResponse.ok) {
+        return null;
+      }
+
+      const idsData = await idsResponse.json();
+      return idsData?.myanimelist || null;
+    } catch (error) {
+      console.error('Error searching ids.moe by title:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get MAL ID from ids.moe API
+   * @param {string} sourceType - Source ID type (trakt, thetvdb, themoviedb, imdb)
+   * @param {number|string} sourceId - Source ID value
+   * @returns {Promise<number|null>} - MAL ID or null if not found
+   */
+  async getMalIdFromIdsMoe(sourceType, sourceId) {
+    if (!config.APP.IDS_MOE_API_KEY) {
+      return null;
+    }
+
+    try {
+      // ids.moe endpoint format: /ids/{id}?platform={platform} (rate limited)
+      const url = `${config.APP.IDS_MOE_API_BASE_URL}/ids/${sourceId}?platform=${sourceType}`;
+      const response = await idsMoeLimiter.throttle(async () => {
+        return fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return data?.myanimelist || null;
+    } catch (error) {
+      console.error(`Error fetching from ids.moe (${sourceType}:${sourceId}):`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get MAL ID by searching MAL API by title (fallback method)
+   * @param {object} traktShow - Trakt show entry
+   * @returns {Promise<number|null>} - MAL ID or null if not found
+   */
+  async getMalIdByTitleSearch(traktShow) {
+    try {
       const searchTitle = traktShow.title;
       const malResponse = await this.mal.searchAnime(searchTitle);
       const malResults = malResponse?.data || [];
@@ -102,27 +306,9 @@ export default class MappingService extends Service {
         'trakt-to-mal',
       );
 
-      if (bestMatch) {
-        const malId = bestMatch.node.id;
-
-        // Cache the mapping
-        await this.cache.set(
-          'animeMapping',
-          {
-            malId: cacheKey,
-            malId: malId,
-            title: bestMatch.node.title,
-            year: bestMatch.node.start_season?.year,
-          },
-          this.cache.CACHE_DURATION.mapping,
-        );
-
-        return malId;
-      }
-
-      return null;
+      return bestMatch ? bestMatch.node.id : null;
     } catch (error) {
-      console.error('Error mapping Trakt to MAL:', error);
+      console.error('Error searching MAL by title:', error);
       return null;
     }
   }

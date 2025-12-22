@@ -110,6 +110,80 @@ export default class TraktService extends Service {
   }
 
   /**
+   * Get user's collection
+   * @param {string} username - Trakt username (use 'me' for authenticated user)
+   * @returns {Promise<Array>}
+   */
+  async getCollection(username = 'me') {
+    const cacheKey = `${username}-collection`;
+    const cached = await this.cache.get('traktCache', cacheKey);
+    if (cached) {
+      return cached.shows;
+    }
+
+    const shows = await this.request(`/users/${username}/collection/shows`);
+
+    await this.cache.set(
+      'traktCache',
+      { userId: cacheKey, shows },
+      this.cache.CACHE_DURATION.traktData,
+    );
+
+    return shows;
+  }
+
+  /**
+   * Get user's custom lists
+   * @param {string} username - Trakt username (use 'me' for authenticated user)
+   * @returns {Promise<Array>} Array of list objects with { name, ids, item_count, etc }
+   */
+  async getUserLists(username = 'me') {
+    const cacheKey = `${username}-lists`;
+    const cached = await this.cache.get('traktCache', cacheKey);
+    if (cached) {
+      return cached.lists;
+    }
+
+    const lists = await this.request(`/users/${username}/lists`);
+
+    await this.cache.set(
+      'traktCache',
+      { userId: cacheKey, lists },
+      this.cache.CACHE_DURATION.traktData,
+    );
+
+    return lists;
+  }
+
+  /**
+   * Get items from a specific list
+   * @param {string} username - Trakt username (use 'me' for authenticated user)
+   * @param {string} listId - List ID or slug
+   * @returns {Promise<Array>} Array of list items (filtered to shows and movies)
+   */
+  async getListItems(username = 'me', listId) {
+    const cacheKey = `${username}-list-${listId}`;
+    const cached = await this.cache.get('traktCache', cacheKey);
+    if (cached) {
+      return cached.items;
+    }
+
+    // Fetch all items from the list
+    const allItems = await this.request(`/users/${username}/lists/${listId}/items`);
+
+    // Filter to only show and movie items (anime can be both TV shows and movies on Trakt)
+    const items = allItems.filter(item => item.type === 'show' || item.type === 'movie');
+
+    await this.cache.set(
+      'traktCache',
+      { userId: cacheKey, items },
+      this.cache.CACHE_DURATION.traktData,
+    );
+
+    return items;
+  }
+
+  /**
    * Get show information
    * @param {string} id - Trakt show ID or slug
    * @returns {Promise<object>}

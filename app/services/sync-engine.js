@@ -19,9 +19,10 @@ export default class SyncEngineService extends Service {
   /**
    * Analyze differences between Trakt and MAL
    * @param {string} direction - 'trakt-to-mal' or 'mal-to-trakt'
+   * @param {Array<string>} listIds - List IDs/slugs to sync from Trakt custom lists
    * @returns {Promise<Array>} Array of sync operations
    */
-  async analyzeDifferences(direction) {
+  async analyzeDifferences(direction, listIds = []) {
     this.syncStatus = 'analyzing';
     this.syncProgress = 0;
     this.syncTotal = 0;
@@ -29,15 +30,40 @@ export default class SyncEngineService extends Service {
     try {
       // Fetch data from both services
       this.currentOperation = 'Fetching anime lists...';
-      const [traktData, malData] = await Promise.all([
-        this.trakt.getWatchedShows(),
-        this.mal.getAllAnime(),
-      ]);
+
+      // Fetch Trakt data from custom lists
+      let traktData = [];
+      if (direction === 'trakt-to-mal' && listIds.length > 0) {
+        const promises = listIds.map(listId => this.trakt.getListItems('me', listId));
+        const results = await Promise.all(promises);
+
+        // Merge and deduplicate by slug (handle both shows and movies)
+        const itemMap = new Map();
+        for (const list of results) {
+          for (const item of list) {
+            // Handle both shows and movies (anime can be either)
+            const mediaItem = item.show || item.movie;
+            const slug = mediaItem.ids.slug;
+            if (!itemMap.has(slug)) {
+              // Normalize structure - always use 'show' property for consistency
+              itemMap.set(slug, {
+                ...item,
+                show: mediaItem
+              });
+            }
+          }
+        }
+        traktData = Array.from(itemMap.values());
+      } else {
+        traktData = await this.trakt.getWatchedShows();
+      }
+
+      const malData = await this.mal.getAllAnime();
 
       // Map the data
       this.currentOperation = 'Matching anime between services...';
-      this.syncTotal = traktData.length + malData.length;
-      const mappedData = await this.mapEntries(traktData, malData);
+      this.syncTotal = direction === 'trakt-to-mal' ? traktData.length : traktData.length + malData.length;
+      const mappedData = await this.mapEntries(traktData, malData, direction);
 
       // Calculate differences
       const operations = this.calculateDifferences(mappedData, direction);
@@ -54,9 +80,10 @@ export default class SyncEngineService extends Service {
    * Map entries between Trakt and MAL
    * @param {Array} traktData - Trakt watched shows
    * @param {Array} malData - MAL anime list
+   * @param {string} direction - Sync direction ('trakt-to-mal' or 'mal-to-trakt')
    * @returns {Promise<Array>}
    */
-  async mapEntries(traktData, malData) {
+  async mapEntries(traktData, malData, direction) {
     const mapped = [];
 
     // Create a map of MAL IDs for quick lookup
@@ -89,20 +116,23 @@ export default class SyncEngineService extends Service {
       this.syncProgress++;
     }
 
-    // Add remaining MAL entries that weren't matched
-    for (const [malId, malEntry] of malMap.entries()) {
-      const traktSlug = await this.mapping.getTraktSlugFromMAL(malEntry.node);
+    // Only process remaining MAL entries when syncing MAL → Trakt
+    // For Trakt → MAL, we don't care about MAL entries that aren't in Trakt
+    if (direction === 'mal-to-trakt') {
+      for (const [malId, malEntry] of malMap.entries()) {
+        const traktSlug = await this.mapping.getTraktSlugFromMAL(malEntry.node);
 
-      mapped.push({
-        traktId: traktSlug,
-        malId,
-        title: malEntry.node.title,
-        traktData: null,
-        malData: malEntry,
-        mapped: !!traktSlug,
-      });
+        mapped.push({
+          traktId: traktSlug,
+          malId,
+          title: malEntry.node.title,
+          traktData: null,
+          malData: malEntry,
+          mapped: !!traktSlug,
+        });
 
-      this.syncProgress++;
+        this.syncProgress++;
+      }
     }
 
     return mapped;

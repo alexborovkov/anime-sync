@@ -18,11 +18,13 @@ module.exports = function (environment) {
       // API Configuration
       TRAKT_CLIENT_ID: process.env.TRAKT_CLIENT_ID || '',
       MAL_CLIENT_ID: process.env.MAL_CLIENT_ID || '',
+      IDS_MOE_API_KEY: process.env.IDS_MOE_API_KEY || '',
       APP_URL: process.env.APP_URL || 'http://localhost:4201',
 
       // API Endpoints
       TRAKT_API_BASE_URL: 'https://api.trakt.tv',
       MAL_API_BASE_URL: '/api/mal',  // Proxied through Vite middleware to avoid CORS
+      IDS_MOE_API_BASE_URL: 'https://api.ids.moe',
 
       // OAuth URLs
       TRAKT_AUTH_URL: 'https://trakt.tv/oauth/authorize',

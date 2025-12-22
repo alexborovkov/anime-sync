@@ -7,32 +7,89 @@ import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { fn } from '@ember/helper';
 import { LinkTo } from '@ember/routing';
-import { eq, gt } from 'ember-truth-helpers';
+import { eq, gt, and, not } from 'ember-truth-helpers';
 // eslint-disable-next-line no-unused-vars
 import SyncEngineService from 'trakt-mal-sync/services/sync-engine';
+// eslint-disable-next-line no-unused-vars
+import TraktService from 'trakt-mal-sync/services/trakt';
 
 class SyncPreviewComponent extends Component {
   /** @type {SyncEngineService} */
   @service syncEngine;
+  /** @type {TraktService} */
+  @service trakt;
   @service router;
 
   @tracked direction = null;
     @tracked operations = [];
     @tracked loading = false;
     @tracked error = null;
+    @tracked userLists = [];
+    @tracked selectedLists = new Set();
 
     @action
-    async analyzeSync(direction) {
+    async selectDirection(direction) {
       this.direction = direction;
+
+      // For Trakt → MAL, fetch user's custom lists
+      if (direction === 'trakt-to-mal') {
+        this.loading = true;
+        try {
+          this.userLists = await this.trakt.getUserLists();
+          this.selectedLists = new Set();
+        } catch (err) {
+          this.error = `Failed to fetch lists: ${err.message}`;
+        } finally {
+          this.loading = false;
+        }
+      }
+      // For MAL → Trakt, start analysis immediately (no list selection)
+      else if (direction === 'mal-to-trakt') {
+        this.analyzeSync();
+      }
+    }
+
+    @action
+    toggleList(listId) {
+      if (this.selectedLists.has(listId)) {
+        this.selectedLists.delete(listId);
+      } else {
+        this.selectedLists.add(listId);
+      }
+      // Trigger reactivity
+      this.selectedLists = new Set(this.selectedLists);
+    }
+
+    @action
+    async analyzeSync() {
       this.loading = true;
       this.error = null;
 
-      try {
-        this.operations = await this.syncEngine.analyzeDifferences(direction);
-      } catch (err) {
-        this.error = err.message;
-      } finally {
-        this.loading = false;
+      if (this.direction === 'trakt-to-mal') {
+        if (this.selectedLists.size === 0) {
+          this.error = 'Please select at least one list to sync';
+          this.loading = false;
+          return;
+        }
+
+        try {
+          // Convert Set to Array of list IDs
+          const listIds = Array.from(this.selectedLists);
+          this.operations = await this.syncEngine.analyzeDifferences(this.direction, listIds);
+        } catch (err) {
+          this.error = err.message;
+        } finally {
+          this.loading = false;
+        }
+      } else {
+        // MAL → Trakt
+        try {
+          this.operations = await this.syncEngine.analyzeDifferences(this.direction, ['watched']);
+        } catch (err) {
+          this.error = err.message;
+        } finally {
+          this.loading = false;
+        }
       }
     }
 
@@ -70,6 +127,11 @@ class SyncPreviewComponent extends Component {
       return Math.round((this.syncEngine.syncProgress / this.syncEngine.syncTotal) * 100);
     }
 
+    @action
+    isListSelected(listSlug) {
+      return this.selectedLists.has(listSlug);
+    }
+
     <template>
       {{pageTitle "Sync Preview"}}
 
@@ -94,7 +156,7 @@ class SyncPreviewComponent extends Component {
 
                 <button
                   type="button"
-                  {{on "click" (fn this.analyzeSync "trakt-to-mal")}}
+                  {{on "click" (fn this.selectDirection "trakt-to-mal")}}
                   class="bg-gray-800 hover:bg-gray-750 rounded-lg p-8 border-2 border-transparent hover:border-trakt-red transition-all group"
                 >
                   <div class="text-6xl mb-4">→</div>
@@ -106,7 +168,7 @@ class SyncPreviewComponent extends Component {
 
                 <button
                   type="button"
-                  {{on "click" (fn this.analyzeSync "mal-to-trakt")}}
+                  {{on "click" (fn this.selectDirection "mal-to-trakt")}}
                   class="bg-gray-800 hover:bg-gray-750 rounded-lg p-8 border-2 border-transparent hover:border-mal-blue transition-all group"
                 >
                   <div class="text-6xl mb-4">←</div>
@@ -119,6 +181,66 @@ class SyncPreviewComponent extends Component {
               </div>
             </div>
           {{/unless}}
+
+          {{! List Selection (only for Trakt → MAL) }}
+          {{#if (and this.direction (eq this.direction "trakt-to-mal") (not this.hasOperations))}}
+            <div class="max-w-2xl mx-auto mt-8">
+              <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-2xl font-bold text-white mb-4">Select Trakt Lists to Sync</h2>
+                <p class="text-gray-300 mb-6 text-sm">
+                  Choose which Trakt lists you want to sync to MyAnimeList
+                </p>
+
+                {{#if this.userLists.length}}
+                  <div class="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                    {{#each this.userLists as |list|}}
+                      <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-700/50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={{this.isListSelected list.ids.slug}}
+                          {{on "change" (fn this.toggleList list.ids.slug)}}
+                          class="w-5 h-5 rounded border-gray-600 bg-gray-700 text-trakt-red focus:ring-trakt-red flex-shrink-0"
+                        />
+                        <div class="flex-1 min-w-0">
+                          <div class="text-white font-medium truncate">{{list.name}}</div>
+                          <div class="text-gray-400 text-sm">
+                            {{list.item_count}} items
+                            {{#if list.description}}
+                              • {{list.description}}
+                            {{/if}}
+                          </div>
+                        </div>
+                      </label>
+                    {{/each}}
+                  </div>
+                {{else}}
+                  <div class="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4 mb-6">
+                    <p class="text-yellow-400 text-sm">
+                      No custom lists found. You can create lists on Trakt.tv and they will appear here.
+                    </p>
+                  </div>
+                {{/if}}
+
+                <div class="flex gap-4">
+                  <button
+                    type="button"
+                    {{on "click" this.cancel}}
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    {{on "click" this.analyzeSync}}
+                    disabled={{eq this.selectedLists.size 0}}
+                    class="flex-1 bg-gradient-to-r from-trakt-red to-mal-lightblue hover:shadow-lg text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Analyze ({{this.selectedLists.size}} selected)
+                  </button>
+                </div>
+              </div>
+            </div>
+          {{/if}}
 
           {{! Loading State }}
           {{#if this.loading}}

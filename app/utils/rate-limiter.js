@@ -110,3 +110,4 @@ export class RateLimiter {
 // Pre-configured rate limiters for each API
 export const traktLimiter = new RateLimiter(1000, 5 * 60 * 1000); // 1000 requests per 5 minutes
 export const malLimiter = new RateLimiter(60, 60 * 1000); // 60 requests per minute
+export const idsMoeLimiter = new RateLimiter(50, 60 * 1000); // 50 requests per minute (leave some buffer from 60 limit)
