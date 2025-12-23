@@ -337,26 +337,38 @@ export default class MappingService extends Service {
       }
 
       // Calculate title similarity
-      const titleSimilarity = this.calculateSimilarity(source.title, targetTitle);
-      score += titleSimilarity * 0.7; // 70% weight on title match
+      let titleSimilarity = this.calculateSimilarity(source.title, targetTitle);
+
+      // Check alternative titles for better matching
+      if (direction === 'mal-to-trakt' && source.alternative_titles) {
+        // MAL → Trakt: Check source (MAL) alternative titles against target (Trakt) title
+        const altTitles = Object.values(source.alternative_titles).flat();
+        // Check ALL alternative titles and use the best match (don't break early)
+        for (const altTitle of altTitles) {
+          const altSimilarity = this.calculateSimilarity(altTitle, targetTitle);
+          if (altSimilarity > titleSimilarity) {
+            titleSimilarity = altSimilarity;
+          }
+        }
+      } else if (direction === 'trakt-to-mal' && result.node.alternative_titles) {
+        // Trakt → MAL: Check target (MAL) alternative titles against source (Trakt) title
+        const altTitles = Object.values(result.node.alternative_titles).flat();
+        // Check ALL alternative titles and use the best match (don't break early)
+        for (const altTitle of altTitles) {
+          const altSimilarity = this.calculateSimilarity(source.title, altTitle);
+          if (altSimilarity > titleSimilarity) {
+            titleSimilarity = altSimilarity;
+          }
+        }
+      }
+
+      score += titleSimilarity * 0.8; // 80% weight on title match
 
       // Year match bonus
       const sourceYear =
         direction === 'mal-to-trakt' ? source.start_season?.year : source.year;
       if (sourceYear && targetYear && sourceYear === targetYear) {
-        score += 0.3; // 30% weight on year match
-      }
-
-      // Check alternative titles if available
-      if (direction === 'mal-to-trakt' && source.alternative_titles) {
-        const altTitles = Object.values(source.alternative_titles).flat();
-        for (const altTitle of altTitles) {
-          const altSimilarity = this.calculateSimilarity(altTitle, targetTitle);
-          if (altSimilarity > titleSimilarity) {
-            score = score - titleSimilarity * 0.7 + altSimilarity * 0.7;
-            break;
-          }
-        }
+        score += 0.2; // 20% weight on year match
       }
 
       if (score > bestScore) {
@@ -365,8 +377,9 @@ export default class MappingService extends Service {
       }
     }
 
-    // Require at least 70% similarity to consider it a match
-    return bestScore >= 0.7 ? bestMatch : null;
+    // Require at least 60% similarity to consider it a match
+    // Lower threshold because alternative titles often have slight variations
+    return bestScore >= 0.6 ? bestMatch : null;
   }
 
   /**
