@@ -95,12 +95,10 @@ class SyncPreviewComponent extends Component {
 
     @action
     startSync() {
-      this.router.transitionTo('sync.progress', {
-        queryParams: {
-          direction: this.direction,
-          operations: JSON.stringify(this.operations),
-        },
-      });
+      // Store operations in service instead of passing via URL
+      this.syncEngine.pendingOperations = this.operations;
+      this.syncEngine.syncDirection = this.direction;
+      this.router.transitionTo('sync.progress');
     }
 
     @action

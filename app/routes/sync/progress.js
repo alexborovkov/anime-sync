@@ -4,30 +4,25 @@ import { service } from '@ember/service';
 export default class SyncProgressRoute extends Route {
   @service oauth;
   @service router;
-
-  queryParams = {
-    direction: { refreshModel: false },
-    operations: { refreshModel: false },
-  };
+  @service syncEngine;
 
   beforeModel() {
     // Check if both services are connected
     if (!this.oauth.isAuthenticatedTrakt || !this.oauth.isAuthenticatedMAL) {
       this.router.transitionTo('dashboard');
     }
+
+    // Check if we have pending operations
+    if (!this.syncEngine.pendingOperations || this.syncEngine.pendingOperations.length === 0) {
+      this.router.transitionTo('sync.preview');
+    }
   }
 
-  async model(params) {
-    let operations = [];
-    try {
-      operations = params.operations ? JSON.parse(params.operations) : [];
-    } catch {
-      operations = [];
-    }
-
+  async model() {
+    // Read operations from service instead of query params
     return {
-      direction: params.direction,
-      operations,
+      direction: this.syncEngine.syncDirection,
+      operations: this.syncEngine.pendingOperations,
     };
   }
 }

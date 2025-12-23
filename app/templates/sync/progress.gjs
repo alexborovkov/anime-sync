@@ -4,6 +4,7 @@ import Component from '@glimmer/component';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { next } from '@ember/runloop';
 import { gt } from 'ember-truth-helpers';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
@@ -20,35 +21,37 @@ class SyncProgressComponent extends Component {
   @tracked hasStarted = false;
 
   @action
-  async startSync(model) {
+  startSync(model) {
       if (this.syncing || this.hasStarted) return;
       if (!model?.operations || model.operations.length === 0) return;
 
-      this.hasStarted = true;
-      this.syncing = true;
+      // Defer the entire sync process to avoid updating tracked properties in the same computation
+      next(async () => {
+        this.hasStarted = true;
+        this.syncing = true;
 
-      try {
-        this.results = await this.syncEngine.executeSyncOperations(
-          model.operations,
-          () => {
-            // Progress callback - updates are handled by service's tracked properties
-          },
-        );
-      } catch (err) {
-        this.results = {
-          error: err.message,
-        };
-      } finally {
-        this.syncing = false;
-        // Redirect to results page after 1 second
-        setTimeout(() => {
-          this.router.transitionTo('sync.results', {
-            queryParams: {
-              results: JSON.stringify(this.results),
+        try {
+          this.results = await this.syncEngine.executeSyncOperations(
+            model.operations,
+            () => {
+              // Progress callback - updates are handled by service's tracked properties
             },
-          });
-        }, 1000);
-      }
+          );
+        } catch (err) {
+          this.results = {
+            error: err.message,
+          };
+        } finally {
+          this.syncing = false;
+          // Clear pending operations
+          this.syncEngine.pendingOperations = null;
+          this.syncEngine.syncDirection = null;
+          // Redirect to results page after 1 second
+          setTimeout(() => {
+            this.router.transitionTo('sync.results');
+          }, 1000);
+        }
+      });
     }
 
     get shouldAutoStart() {

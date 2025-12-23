@@ -15,6 +15,9 @@ export default class SyncEngineService extends Service {
   @tracked syncTotal = 0;
   @tracked syncStatus = 'idle'; // idle, analyzing, syncing, complete, error
   @tracked currentOperation = null;
+  @tracked lastSyncResults = null;
+  @tracked pendingOperations = null;
+  @tracked syncDirection = null;
 
   /**
    * Analyze differences between Trakt and MAL
@@ -344,6 +347,9 @@ export default class SyncEngineService extends Service {
 
     // Save sync history
     await this.saveSyncHistory(results);
+
+    // Store results for the results page
+    this.lastSyncResults = results;
 
     return results;
   }

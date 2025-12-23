@@ -1,18 +1,13 @@
 import Route from '@ember/routing/route';
+import { service } from '@ember/service';
 
 export default class SyncResultsRoute extends Route {
-  queryParams = {
-    results: { refreshModel: false },
-  };
+  @service syncEngine;
 
-  async model(params) {
-    let results = null;
-    try {
-      results = params.results ? JSON.parse(params.results) : null;
-    } catch {
-      results = null;
-    }
-
-    return { results };
+  async model() {
+    // Read results from syncEngine service instead of query params
+    return {
+      results: this.syncEngine.lastSyncResults,
+    };
   }
 }
