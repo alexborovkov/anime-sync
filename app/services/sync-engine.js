@@ -18,6 +18,7 @@ export default class SyncEngineService extends Service {
   @tracked lastSyncResults = null;
   @tracked pendingOperations = null;
   @tracked syncDirection = null;
+  @tracked syncedListIds = [];
 
   /**
    * Analyze differences between Trakt and MAL
@@ -404,6 +405,28 @@ export default class SyncEngineService extends Service {
       direction: this.syncDirection,
       ...results,
     });
+
+    // Mark lists as synced
+    if (this.syncDirection === 'trakt-to-mal' && this.syncedListIds.length > 0) {
+      for (const listId of this.syncedListIds) {
+        await this.cache.set('listSyncStatus', {
+          id: `list-${listId}`,
+          listId,
+          synced: true,
+          syncedAt: new Date(),
+        });
+      }
+    }
+  }
+
+  /**
+   * Check if a list has been synced before
+   * @param {string} listId - Trakt list ID
+   * @returns {Promise<boolean>}
+   */
+  async isListSynced(listId) {
+    const status = await this.cache.get('listSyncStatus', `list-${listId}`);
+    return status?.synced || false;
   }
 
   /**

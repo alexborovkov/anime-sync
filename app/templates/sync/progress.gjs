@@ -43,11 +43,12 @@ class SyncProgressComponent extends Component {
           };
         } finally {
           this.syncing = false;
-          // Clear pending operations
-          this.syncEngine.pendingOperations = null;
-          this.syncEngine.syncDirection = null;
           // Redirect to results page after 1 second
           setTimeout(() => {
+            // Clear pending operations after redirect
+            this.syncEngine.pendingOperations = null;
+            this.syncEngine.syncDirection = null;
+            this.syncEngine.syncedListIds = [];
             this.router.transitionTo('sync.results');
           }, 1000);
         }

@@ -37,13 +37,15 @@ class SyncPreviewComponent extends Component {
         try {
           const lists = await this.trakt.getUserLists();
 
-          // Fetch actual item counts for each list
+          // Fetch actual item counts and sync status for each list
           const listsWithCounts = await Promise.all(
             lists.map(async (list) => {
               const items = await this.trakt.getListItems('me', list.ids.slug);
+              const synced = await this.syncEngine.isListSynced(list.ids.slug);
               return {
                 ...list,
                 actual_item_count: items.length,
+                synced,
               };
             })
           );
@@ -111,6 +113,7 @@ class SyncPreviewComponent extends Component {
       // Store operations in service instead of passing via URL
       this.syncEngine.pendingOperations = this.operations;
       this.syncEngine.syncDirection = this.direction;
+      this.syncEngine.syncedListIds = Array.from(this.selectedLists);
       this.router.transitionTo('sync.progress');
     }
 
@@ -213,7 +216,12 @@ class SyncPreviewComponent extends Component {
                           class="w-5 h-5 rounded border-gray-600 bg-gray-700 text-trakt-red focus:ring-trakt-red flex-shrink-0"
                         />
                         <div class="flex-1 min-w-0">
-                          <div class="text-white font-medium truncate">{{list.name}}</div>
+                          <div class="flex items-center gap-2">
+                            <div class="text-white font-medium truncate">{{list.name}}</div>
+                            {{#if list.synced}}
+                              <span class="text-green-400 text-sm flex-shrink-0" title="Already synced">✓</span>
+                            {{/if}}
+                          </div>
                           <div class="text-gray-400 text-sm">
                             {{list.actual_item_count}} items
                             {{#if list.description}}
