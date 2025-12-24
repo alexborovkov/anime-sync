@@ -19,6 +19,7 @@ class SyncPreviewComponent extends Component {
   /** @type {TraktService} */
   @service trakt;
   @service router;
+  @service cache;
 
   @tracked direction = null;
   @tracked operations = [];
@@ -26,6 +27,9 @@ class SyncPreviewComponent extends Component {
   @tracked error = null;
   @tracked userLists = [];
   @tracked selectedLists = new Set();
+  @tracked traktTargetLists = [];
+  @tracked selectedTargetList = null;
+  @tracked newListName = '';
 
     @action
     async selectDirection(direction) {
@@ -58,9 +62,19 @@ class SyncPreviewComponent extends Component {
           this.loading = false;
         }
       }
-      // For MAL → Trakt, start analysis immediately (no list selection)
+      // For MAL → Trakt, fetch target lists
       else if (direction === 'mal-to-trakt') {
-        this.analyzeSync();
+        this.loading = true;
+        try {
+          const lists = await this.trakt.getUserLists();
+          this.traktTargetLists = lists;
+          this.selectedTargetList = null;
+          this.newListName = '';
+        } catch (err) {
+          this.error = `Failed to fetch Trakt lists: ${err.message}`;
+        } finally {
+          this.loading = false;
+        }
       }
     }
 
@@ -73,6 +87,39 @@ class SyncPreviewComponent extends Component {
       }
       // Trigger reactivity
       this.selectedLists = new Set(this.selectedLists);
+    }
+
+    @action
+    async createNewList() {
+      if (!this.newListName.trim()) {
+        this.error = 'Please enter a list name';
+        return;
+      }
+
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const newList = await this.trakt.createList(
+          this.newListName.trim(),
+          'Synced from MyAnimeList'
+        );
+
+        // Add the new list to the existing lists array
+        this.traktTargetLists = [...this.traktTargetLists, newList];
+
+        // Select the newly created list
+        this.selectedTargetList = newList.ids.slug;
+        this.newListName = '';
+
+        // Clear cache so next time we fetch fresh data
+        const cacheKey = 'me-lists';
+        await this.cache.remove('traktCache', cacheKey);
+      } catch (err) {
+        this.error = `Failed to create list: ${err.message}`;
+      } finally {
+        this.loading = false;
+      }
     }
 
     @action
@@ -98,6 +145,12 @@ class SyncPreviewComponent extends Component {
         }
       } else {
         // MAL → Trakt
+        if (!this.selectedTargetList) {
+          this.error = 'Please select a target list or create a new one';
+          this.loading = false;
+          return;
+        }
+
         try {
           this.operations = await this.syncEngine.analyzeDifferences(this.direction, ['watched']);
         } catch (err) {
@@ -114,6 +167,14 @@ class SyncPreviewComponent extends Component {
       this.syncEngine.pendingOperations = this.operations;
       this.syncEngine.syncDirection = this.direction;
       this.syncEngine.syncedListIds = Array.from(this.selectedLists);
+
+      // Store target list for MAL → Trakt
+      if (this.direction === 'mal-to-trakt') {
+        this.syncEngine.targetTraktListId = this.selectedTargetList;
+      } else {
+        this.syncEngine.targetTraktListId = null;
+      }
+
       this.router.transitionTo('sync.progress');
     }
 
@@ -122,6 +183,9 @@ class SyncPreviewComponent extends Component {
       this.direction = null;
       this.operations = [];
       this.error = null;
+      this.selectedLists = new Set();
+      this.selectedTargetList = null;
+      this.newListName = '';
     }
 
     get hasOperations() {
@@ -144,6 +208,16 @@ class SyncPreviewComponent extends Component {
     @action
     isListSelected(listSlug) {
       return this.selectedLists.has(listSlug);
+    }
+
+    @action
+    updateNewListName(event) {
+      this.newListName = event.target.value;
+    }
+
+    @action
+    updateSelectedTargetList(event) {
+      this.selectedTargetList = event.target.value;
     }
 
     <template>
@@ -255,6 +329,76 @@ class SyncPreviewComponent extends Component {
                     class="flex-1 bg-gradient-to-r from-trakt-red to-mal-lightblue hover:shadow-lg text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Analyze ({{this.selectedLists.size}} selected)
+                  </button>
+                </div>
+              </div>
+            </div>
+          {{/if}}
+
+          {{! Target List Selection (only for MAL → Trakt) }}
+          {{#if (and this.direction (eq this.direction "mal-to-trakt") (not this.hasOperations))}}
+            <div class="max-w-2xl mx-auto mt-8">
+              <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-2xl font-bold text-white mb-4">Select Target Trakt List</h2>
+                <p class="text-gray-300 mb-6 text-sm">
+                  Choose where to add your MAL anime in Trakt
+                </p>
+
+                {{! Existing Lists }}
+                {{#if this.traktTargetLists.length}}
+                  <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Select Existing List</label>
+                    <select
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-mal-blue focus:border-transparent"
+                      {{on "change" this.updateSelectedTargetList}}
+                    >
+                      <option value="">-- Select a list --</option>
+                      {{#each this.traktTargetLists as |list|}}
+                        <option value={{list.ids.slug}} selected={{eq this.selectedTargetList list.ids.slug}}>
+                          {{list.name}} ({{list.item_count}} items)
+                        </option>
+                      {{/each}}
+                    </select>
+                  </div>
+                {{/if}}
+
+                {{! Create New List }}
+                <div class="mb-6">
+                  <label class="block text-sm font-medium text-gray-400 mb-2">Or Create New List</label>
+                  <div class="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter new list name..."
+                      value={{this.newListName}}
+                      {{on "input" this.updateNewListName}}
+                      class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-mal-blue focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      {{on "click" this.createNewList}}
+                      disabled={{not this.newListName}}
+                      class="bg-mal-blue hover:bg-mal-lightblue text-white font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Create
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex gap-4">
+                  <button
+                    type="button"
+                    {{on "click" this.cancel}}
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    {{on "click" this.analyzeSync}}
+                    disabled={{not this.selectedTargetList}}
+                    class="flex-1 bg-gradient-to-r from-mal-blue to-trakt-red hover:shadow-lg text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Analyze
                   </button>
                 </div>
               </div>

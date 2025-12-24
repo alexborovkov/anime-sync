@@ -19,6 +19,7 @@ export default class SyncEngineService extends Service {
   @tracked pendingOperations = null;
   @tracked syncDirection = null;
   @tracked syncedListIds = [];
+  @tracked targetTraktListId = null; // For MAL → Trakt sync
 
   /**
    * Analyze differences between Trakt and MAL
@@ -371,18 +372,22 @@ export default class SyncEngineService extends Service {
         });
 
       case 'add_to_trakt':
-        return this.trakt.addToHistory([
-          {
-            ids: { slug: operation.entry.traktId },
-          },
-        ]);
-
       case 'update_trakt':
-        return this.trakt.addToHistory([
-          {
-            ids: { slug: operation.entry.traktId },
-          },
-        ]);
+        // Add to specific list if targetTraktListId is set (MAL → Trakt)
+        if (this.targetTraktListId) {
+          return this.trakt.addItemsToList(this.targetTraktListId, [
+            {
+              ids: { slug: operation.entry.traktId },
+            },
+          ]);
+        } else {
+          // Fallback to history
+          return this.trakt.addToHistory([
+            {
+              ids: { slug: operation.entry.traktId },
+            },
+          ]);
+        }
 
       default:
         throw new Error(`Unknown operation: ${operation.action}`);

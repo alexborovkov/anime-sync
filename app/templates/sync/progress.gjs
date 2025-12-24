@@ -49,6 +49,7 @@ class SyncProgressComponent extends Component {
             this.syncEngine.pendingOperations = null;
             this.syncEngine.syncDirection = null;
             this.syncEngine.syncedListIds = [];
+            this.syncEngine.targetTraktListId = null;
             this.router.transitionTo('sync.results');
           }, 1000);
         }

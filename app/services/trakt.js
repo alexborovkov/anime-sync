@@ -267,4 +267,41 @@ export default class TraktService extends Service {
       `/search/show?query=${encodeURIComponent(query)}&extended=full`,
     );
   }
+
+  /**
+   * Create a new custom list
+   * @param {string} name - List name
+   * @param {string} description - List description (optional)
+   * @param {string} privacy - List privacy (private, friends, public) - default: private
+   * @returns {Promise<object>} Created list object
+   */
+  async createList(name, description = '', privacy = 'private') {
+    return this.request('/users/me/lists', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        description,
+        privacy,
+        display_numbers: true,
+        allow_comments: false,
+      }),
+    });
+  }
+
+  /**
+   * Add items to a custom list
+   * @param {string} listId - List ID or slug
+   * @param {Array} shows - Array of show objects with ids
+   * @param {Array} movies - Array of movie objects with ids (optional)
+   * @returns {Promise<object>}
+   */
+  async addItemsToList(listId, shows = [], movies = []) {
+    return this.request(`/users/me/lists/${listId}/items`, {
+      method: 'POST',
+      body: JSON.stringify({
+        shows,
+        movies,
+      }),
+    });
+  }
 }
