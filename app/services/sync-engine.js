@@ -32,12 +32,14 @@ export default class SyncEngineService extends Service {
     this.syncTotal = 0;
 
     try {
-      // Fetch data from both services
+      // Fetch data based on sync direction
       this.currentOperation = 'Fetching anime lists...';
 
-      // Fetch Trakt data from custom lists
       let traktData = [];
-      if (direction === 'trakt-to-mal' && listIds.length > 0) {
+      let malData = [];
+
+      if (direction === 'trakt-to-mal') {
+        // Trakt → MAL: Fetch from Trakt custom lists
         const promises = listIds.map(listId => this.trakt.getListItems('me', listId));
         const results = await Promise.all(promises);
 
@@ -58,15 +60,16 @@ export default class SyncEngineService extends Service {
           }
         }
         traktData = Array.from(itemMap.values());
+        malData = await this.mal.getAllAnime();
       } else {
-        traktData = await this.trakt.getWatchedShows();
+        // MAL → Trakt: Only fetch MAL data (MAL is anime-only)
+        malData = await this.mal.getAllAnime();
+        traktData = []; // Don't fetch Trakt data - MAL is the source of truth
       }
-
-      const malData = await this.mal.getAllAnime();
 
       // Map the data
       this.currentOperation = 'Matching anime between services...';
-      this.syncTotal = direction === 'trakt-to-mal' ? traktData.length : traktData.length + malData.length;
+      this.syncTotal = direction === 'trakt-to-mal' ? traktData.length : malData.length;
       const mappedData = await this.mapEntries(traktData, malData, direction);
 
       // Calculate differences
@@ -82,7 +85,7 @@ export default class SyncEngineService extends Service {
 
   /**
    * Map entries between Trakt and MAL
-   * @param {Array} traktData - Trakt watched shows
+   * @param {Array} traktData - Trakt shows from custom lists (empty for MAL → Trakt)
    * @param {Array} malData - MAL anime list
    * @param {string} direction - Sync direction ('trakt-to-mal' or 'mal-to-trakt')
    * @returns {Promise<Array>}
@@ -90,45 +93,38 @@ export default class SyncEngineService extends Service {
   async mapEntries(traktData, malData, direction) {
     const mapped = [];
 
-    // Create a map of MAL IDs for quick lookup
-    const malMap = new Map();
-    for (const item of malData) {
-      malMap.set(item.node.id, item);
-    }
-
-    // Process each Trakt entry
-    for (const traktShow of traktData) {
-      const traktId = traktShow.show.ids.slug;
-      const malId = await this.mapping.getMALIdFromTrakt(traktShow.show);
-
-      const malEntry = malId ? malMap.get(malId) : null;
-
-      mapped.push({
-        traktId,
-        malId,
-        title: traktShow.show.title,
-        traktData: traktShow,
-        malData: malEntry || null,
-        mapped: !!malId,
-      });
-
-      // Remove from MAL map to track unmatched entries
-      if (malId) {
-        malMap.delete(malId);
+    if (direction === 'trakt-to-mal') {
+      // Trakt → MAL: Process Trakt entries and match with MAL
+      const malMap = new Map();
+      for (const item of malData) {
+        malMap.set(item.node.id, item);
       }
 
-      this.syncProgress++;
-    }
+      for (const traktShow of traktData) {
+        const traktId = traktShow.show.ids.slug;
+        const malId = await this.mapping.getMALIdFromTrakt(traktShow.show);
 
-    // Only process remaining MAL entries when syncing MAL → Trakt
-    // For Trakt → MAL, we don't care about MAL entries that aren't in Trakt
-    if (direction === 'mal-to-trakt') {
-      for (const [malId, malEntry] of malMap.entries()) {
+        const malEntry = malId ? malMap.get(malId) : null;
+
+        mapped.push({
+          traktId,
+          malId,
+          title: traktShow.show.title,
+          traktData: traktShow,
+          malData: malEntry || null,
+          mapped: !!malId,
+        });
+
+        this.syncProgress++;
+      }
+    } else {
+      // MAL → Trakt: Process all MAL entries (anime only)
+      for (const malEntry of malData) {
         const traktSlug = await this.mapping.getTraktSlugFromMAL(malEntry.node);
 
         mapped.push({
           traktId: traktSlug,
-          malId,
+          malId: malEntry.node.id,
           title: malEntry.node.title,
           traktData: null,
           malData: malEntry,
