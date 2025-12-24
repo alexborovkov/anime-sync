@@ -35,7 +35,20 @@ class SyncPreviewComponent extends Component {
       if (direction === 'trakt-to-mal') {
         this.loading = true;
         try {
-          this.userLists = await this.trakt.getUserLists();
+          const lists = await this.trakt.getUserLists();
+
+          // Fetch actual item counts for each list
+          const listsWithCounts = await Promise.all(
+            lists.map(async (list) => {
+              const items = await this.trakt.getListItems('me', list.ids.slug);
+              return {
+                ...list,
+                actual_item_count: items.length,
+              };
+            })
+          );
+
+          this.userLists = listsWithCounts;
           this.selectedLists = new Set();
         } catch (err) {
           this.error = `Failed to fetch lists: ${err.message}`;
@@ -202,7 +215,7 @@ class SyncPreviewComponent extends Component {
                         <div class="flex-1 min-w-0">
                           <div class="text-white font-medium truncate">{{list.name}}</div>
                           <div class="text-gray-400 text-sm">
-                            {{list.item_count}} items
+                            {{list.actual_item_count}} items
                             {{#if list.description}}
                               • {{list.description}}
                             {{/if}}
