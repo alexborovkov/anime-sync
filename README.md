@@ -33,8 +33,8 @@ This is a **client-side only** application:
 ### 1. Clone the Repository
 
 \`\`\`bash
-git clone <repository-url>
-cd trakt-mal-sync
+git clone https://github.com/alexborovkov/anime-sync.git
+cd anime-sync
 \`\`\`
 
 ### 2. Install Dependencies
