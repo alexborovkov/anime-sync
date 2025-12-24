@@ -226,6 +226,15 @@ export default class MappingService extends Service {
 
       const topResult = searchData.results[0];
 
+      // Debug logging
+      if (title.includes('Outlaw') || title.includes('Cowboy')) {
+        console.log(`[Mapping] ids.moe search for "${title}":`, {
+          topResult: topResult.title || topResult.name,
+          id: topResult.id,
+          allResults: searchData.results.slice(0, 3).map(r => r.title || r.name)
+        });
+      }
+
       // Fetch all platform IDs using the internal ID (rate limited)
       const idsUrl = `${config.APP.IDS_MOE_API_BASE_URL}/ids/${topResult.id}`;
       const idsResponse = await idsMoeLimiter.throttle(async () => {
@@ -242,7 +251,14 @@ export default class MappingService extends Service {
       }
 
       const idsData = await idsResponse.json();
-      return idsData?.myanimelist || null;
+      const malId = idsData?.myanimelist || null;
+
+      // Debug logging
+      if (title.includes('Outlaw') || title.includes('Cowboy')) {
+        console.log(`[Mapping] ids.moe returned MAL ID ${malId} for "${title}"`);
+      }
+
+      return malId;
     } catch (error) {
       console.error('Error searching ids.moe by title:', error);
       return null;

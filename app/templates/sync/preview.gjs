@@ -21,11 +21,11 @@ class SyncPreviewComponent extends Component {
   @service router;
 
   @tracked direction = null;
-    @tracked operations = [];
-    @tracked loading = false;
-    @tracked error = null;
-    @tracked userLists = [];
-    @tracked selectedLists = new Set();
+  @tracked operations = [];
+  @tracked loading = false;
+  @tracked error = null;
+  @tracked userLists = [];
+  @tracked selectedLists = new Set();
 
     @action
     async selectDirection(direction) {
@@ -318,13 +318,6 @@ class SyncPreviewComponent extends Component {
                     <div class="bg-gray-700 rounded p-4 flex items-center justify-between">
                       <div class="flex-1">
                         <h4 class="text-white font-medium">{{op.entry.title}}</h4>
-                        <p class="text-sm text-gray-400">
-                          {{#if (eq op.type "add")}}
-                            <span class="text-green-400">Will be added</span>
-                          {{else if (eq op.type "update")}}
-                            <span class="text-blue-400">Will be updated</span>
-                          {{/if}}
-                        </p>
                       </div>
                       <span class="text-2xl">
                         {{#if (eq op.action "add_to_mal")}}→{{/if}}

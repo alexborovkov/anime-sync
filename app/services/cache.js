@@ -6,7 +6,7 @@ import Service from '@ember/service';
  */
 export default class CacheService extends Service {
   dbName = 'TraktMALSync';
-  dbVersion = 2;  // Increment version to trigger upgrade
+  dbVersion = 3;  // Increment version to trigger upgrade
   db = null;
 
   // Cache durations in milliseconds
@@ -76,8 +76,16 @@ export default class CacheService extends Service {
         if (!db.objectStoreNames.contains('syncHistory')) {
           db.createObjectStore('syncHistory', {
             keyPath: 'id',
-            autoIncrement: true,
           });
+        }
+
+        // Create object store for list sync history
+        if (!db.objectStoreNames.contains('listSyncHistory')) {
+          const listSyncStore = db.createObjectStore('listSyncHistory', {
+            keyPath: 'id',
+          });
+          listSyncStore.createIndex('listId', 'listId', { unique: false });
+          listSyncStore.createIndex('syncedAt', 'syncedAt', { unique: false });
         }
       };
     });
@@ -262,7 +270,7 @@ export default class CacheService extends Service {
   async clearExpired() {
     await this.openDatabase();
 
-    const storeNames = ['animeMapping', 'traktCache', 'malCache', 'syncHistory'];
+    const storeNames = ['animeMapping', 'traktCache', 'malCache', 'syncHistory', 'listSyncHistory'];
 
     for (const storeName of storeNames) {
       const items = await this.getAll(storeName);
@@ -283,7 +291,7 @@ export default class CacheService extends Service {
   async clearAll() {
     await this.openDatabase();
 
-    const storeNames = ['animeMapping', 'traktCache', 'malCache', 'syncHistory'];
+    const storeNames = ['animeMapping', 'traktCache', 'malCache', 'syncHistory', 'listSyncHistory'];
 
     for (const storeName of storeNames) {
       await this.clearStore(storeName);

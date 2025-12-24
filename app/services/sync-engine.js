@@ -95,12 +95,37 @@ export default class SyncEngineService extends Service {
       malMap.set(item.node.id, item);
     }
 
+    console.log(`[Sync] MAL list has ${malMap.size} entries`);
+    console.log('[Sync] MAL IDs:', Array.from(malMap.keys()).slice(0, 20));
+
     // Process each Trakt entry
     for (const traktShow of traktData) {
       const traktId = traktShow.show.ids.slug;
       const malId = await this.mapping.getMALIdFromTrakt(traktShow.show);
 
       const malEntry = malId ? malMap.get(malId) : null;
+
+      // Check for duplicate MAL ID mappings
+      if (malId === 1) {
+        console.log(`[Sync] Found Trakt show mapping to MAL ID 1: "${traktShow.show.title}"`);
+        console.log(`[Sync] MAL entry found: ${!!malEntry}`);
+      }
+
+      // Debug specific titles
+      if (traktShow.show.title.includes('Cowboy')) {
+        console.log(`[Sync] ${traktShow.show.title}: malId=${malId} (type: ${typeof malId}), found=${!!malEntry}`);
+        if (malId && !malEntry) {
+          console.log(`[Sync] MAL ID ${malId} not found in MAL list!`);
+          console.log('[Sync] Checking if ID 1 exists in malMap with different type:');
+          console.log('  - malMap.has(1):', malMap.has(1));
+          console.log('  - malMap.has("1"):', malMap.has("1"));
+          console.log('  - malMap.get(1):', malMap.get(1));
+          console.log('  - malMap.get("1"):', malMap.get("1"));
+          // Check all keys to see their types
+          const keys = Array.from(malMap.keys()).slice(0, 5);
+          console.log('  - First 5 keys:', keys.map(k => `${k} (${typeof k})`));
+        }
+      }
 
       mapped.push({
         traktId,
@@ -399,7 +424,9 @@ export default class SyncEngineService extends Service {
    */
   async saveSyncHistory(results) {
     await this.cache.set('syncHistory', {
+      id: `sync-${Date.now()}`,
       timestamp: new Date(),
+      direction: this.syncDirection,
       ...results,
     });
   }
