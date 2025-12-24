@@ -65,6 +65,13 @@ npm install
    - Production: `https://your-domain.com/auth/mal-callback`
 4. Save your **Client ID** (no secret needed - uses PKCE)
 
+#### ids.moe API (Optional but Recommended)
+
+1. Visit [https://ids.moe/](https://ids.moe/)
+2. Sign up for a free API key
+3. This service provides fast anime ID mapping between Trakt (TVDB/TMDb) and MyAnimeList
+4. Without this key, the app will fall back to title-based matching (slower and less accurate)
+
 ### 4. Configure Environment Variables
 
 Create a \`.env.local\` file in the project root:
@@ -78,6 +85,7 @@ Edit \`.env.local\` and add your credentials:
 \`\`\`env
 TRAKT_CLIENT_ID=your_trakt_client_id
 MAL_CLIENT_ID=your_mal_client_id
+IDS_MOE_API_KEY=your_ids_moe_api_key  # Optional but recommended
 APP_URL=http://localhost:4201
 \`\`\`
 
@@ -129,6 +137,7 @@ npm i -g vercel
    - \`TRAKT_CLIENT_ID\`
    - \`TRAKT_CLIENT_SECRET\`
    - \`MAL_CLIENT_ID\`
+   - \`IDS_MOE_API_KEY\` (optional but recommended)
 
 3. Deploy:
 
