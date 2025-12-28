@@ -10,6 +10,7 @@ import config from 'trakt-mal-sync/config/environment';
 export default class RedirectUriHelper extends Component {
   @tracked traktCopied = false;
   @tracked malCopied = false;
+  @tracked corsOriginCopied = false;
 
   get traktRedirectUri() {
     return `${config.APP.APP_URL}/auth/trakt-callback`;
@@ -17,6 +18,16 @@ export default class RedirectUriHelper extends Component {
 
   get malRedirectUri() {
     return `${config.APP.APP_URL}/auth/mal-callback`;
+  }
+
+  get corsOrigin() {
+    // Extract origin from APP_URL (e.g., https://alexborovkov.github.io from https://alexborovkov.github.io/anime-sync)
+    try {
+      const url = new URL(config.APP.APP_URL);
+      return url.origin;
+    } catch {
+      return config.APP.APP_URL;
+    }
   }
 
   @action
@@ -42,6 +53,19 @@ export default class RedirectUriHelper extends Component {
       }, 2000);
     } catch (error) {
       console.error('Failed to copy MAL redirect URI:', error);
+    }
+  }
+
+  @action
+  async copyCorsOrigin() {
+    try {
+      await navigator.clipboard.writeText(this.corsOrigin);
+      this.corsOriginCopied = true;
+      setTimeout(() => {
+        this.corsOriginCopied = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy CORS origin:', error);
     }
   }
 
@@ -75,7 +99,7 @@ export default class RedirectUriHelper extends Component {
       </div>
 
       {{! MAL Redirect URI }}
-      <div>
+      <div class="mb-3">
         <label class="block text-gray-400 text-sm font-medium mb-1">
           MAL Redirect URI
         </label>
@@ -92,6 +116,31 @@ export default class RedirectUriHelper extends Component {
             class="bg-mal-blue hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
           >
             {{if this.malCopied "Copied!" "Copy"}}
+          </button>
+        </div>
+      </div>
+
+      {{! Trakt CORS Origin }}
+      <div class="mt-4 pt-4 border-t border-gray-600">
+        <label class="block text-gray-400 text-sm font-medium mb-1">
+          Trakt CORS Origin
+        </label>
+        <p class="text-gray-400 text-xs mb-2">
+          Add this to "Javascript (cors) origins" in your Trakt app settings
+        </p>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            value={{this.corsOrigin}}
+            readonly
+            class="flex-1 bg-gray-800 border border-gray-600 text-white rounded px-3 py-2 text-sm font-mono"
+          />
+          <button
+            type="button"
+            {{on "click" this.copyCorsOrigin}}
+            class="bg-trakt-red hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+          >
+            {{if this.corsOriginCopied "Copied!" "Copy"}}
           </button>
         </div>
       </div>
