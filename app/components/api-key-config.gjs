@@ -98,6 +98,9 @@ export default class ApiKeyConfig extends Component {
       if (!this.malClientId || !this.malClientSecret) {
         throw new Error('MAL Client ID and Client Secret are required');
       }
+      if (!this.idsMoeApiKey) {
+        throw new Error('ids.moe API key is required');
+      }
 
       // Save to storage
       this.storage.setUserApiKey('user_trakt_client_id', this.traktClientId);
@@ -110,13 +113,7 @@ export default class ApiKeyConfig extends Component {
         'user_mal_client_secret',
         this.malClientSecret,
       );
-
-      // ids.moe is optional
-      if (this.idsMoeApiKey) {
-        this.storage.setUserApiKey('user_ids_moe_api_key', this.idsMoeApiKey);
-      } else {
-        this.storage.removeUserApiKey('user_ids_moe_api_key');
-      }
+      this.storage.setUserApiKey('user_ids_moe_api_key', this.idsMoeApiKey);
 
       this.saveStatus = 'saved';
       setTimeout(() => {
