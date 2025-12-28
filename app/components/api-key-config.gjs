@@ -3,6 +3,7 @@ import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
+import { eq } from 'ember-truth-helpers';
 import RedirectUriHelper from './redirect-uri-helper';
 // eslint-disable-next-line no-unused-vars
 import StorageService from 'trakt-mal-sync/services/storage';
