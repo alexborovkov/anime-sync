@@ -1,5 +1,6 @@
 import { pageTitle } from 'ember-page-title';
 import RouteTemplate from 'ember-route-template';
+import { LinkTo } from '@ember/routing';
 
 export default RouteTemplate(
   <template>
@@ -13,12 +14,12 @@ export default RouteTemplate(
             <div class="text-6xl mb-4">❌</div>
             <h1 class="text-2xl font-bold text-white mb-4">Authentication Failed</h1>
             <p class="text-red-400 mb-6">{{@model.message}}</p>
-            <a
-              href="/dashboard"
+            <LinkTo
+              @route="dashboard"
               class="inline-block bg-mal-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Back to Dashboard
-            </a>
+            </LinkTo>
           </div>
         {{else}}
           <div class="text-center">
