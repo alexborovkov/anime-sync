@@ -61,7 +61,7 @@ module.exports = function (environment) {
     // GitHub Pages configuration
     ENV.rootURL = '/anime-sync/';
     ENV.locationType = 'hash'; // Use hash routing for GitHub Pages
-    ENV.APP.APP_URL = process.env.APP_URL || 'https://aborovkov.github.io/anime-sync';
+    ENV.APP.APP_URL = process.env.APP_URL || 'https://alexborovkov.github.io/anime-sync';
   }
 
   return ENV;
