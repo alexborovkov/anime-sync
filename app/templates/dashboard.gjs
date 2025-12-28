@@ -5,14 +5,18 @@ import { service } from '@ember/service';
 import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
-import { and } from 'ember-truth-helpers';
+import { and, not } from 'ember-truth-helpers';
 import ConnectionCard from 'trakt-mal-sync/components/connection-card';
 // eslint-disable-next-line no-unused-vars
 import OAuthService from 'trakt-mal-sync/services/oauth';
+// eslint-disable-next-line no-unused-vars
+import StorageService from 'trakt-mal-sync/services/storage';
 
 class DashboardComponent extends Component {
   /** @type {OAuthService} */
   @service oauth;
+  /** @type {StorageService} */
+  @service storage;
   @service router;
 
     get isAuthenticatedTrakt() {
@@ -23,14 +27,34 @@ class DashboardComponent extends Component {
       return this.oauth.isAuthenticatedMAL;
     }
 
+    get hasRequiredKeys() {
+      return this.storage.hasRequiredKeys();
+    }
+
+    get hasTraktKeys() {
+      return this.storage.hasTraktKeys();
+    }
+
+    get hasMALKeys() {
+      return this.storage.hasMALKeys();
+    }
+
     @action
     async connectTrakt() {
-      await this.oauth.initiateTraktAuth();
+      try {
+        await this.oauth.initiateTraktAuth();
+      } catch (error) {
+        alert(error.message);
+      }
     }
 
     @action
     async connectMAL() {
-      await this.oauth.initiateMALAuth();
+      try {
+        await this.oauth.initiateMALAuth();
+      } catch (error) {
+        alert(error.message);
+      }
     }
 
     @action
@@ -65,6 +89,37 @@ class DashboardComponent extends Component {
             <h1 class="text-4xl font-bold text-white mb-2">Dashboard</h1>
             <p class="text-gray-300">Manage your connections and sync your anime lists</p>
           </div>
+
+          {{! API Keys Warning }}
+          {{#if (not this.hasRequiredKeys)}}
+            <div class="mb-8">
+              <div class="bg-blue-900/30 border border-blue-500 rounded-lg p-6">
+                <h3 class="text-blue-400 font-bold mb-2 flex items-center gap-2">
+                  <span>ℹ️</span>
+                  API Configuration Required
+                </h3>
+                <p class="text-gray-300 mb-4">
+                  Before you can connect your accounts, you need to configure your API credentials in Settings.
+                </p>
+                <div class="flex flex-col gap-2 text-sm text-gray-400 mb-4">
+                  <div class="flex items-center gap-2">
+                    <span>{{if this.hasTraktKeys "✅" "❌"}}</span>
+                    <span>Trakt API credentials</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span>{{if this.hasMALKeys "✅" "❌"}}</span>
+                    <span>MyAnimeList API credentials</span>
+                  </div>
+                </div>
+                <LinkTo
+                  @route="settings"
+                  class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Configure API Keys in Settings →
+                </LinkTo>
+              </div>
+            </div>
+          {{/if}}
 
           {{! Connection Status }}
           <div class="mb-8">
