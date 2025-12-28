@@ -5,6 +5,10 @@
     "api/trakt-token.js": {
       "memory": 128,
       "maxDuration": 10
+    },
+    "api/mal-token.js": {
+      "memory": 128,
+      "maxDuration": 10
     }
   },
   "headers": [

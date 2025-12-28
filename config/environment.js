@@ -15,11 +15,14 @@ module.exports = function (environment) {
     },
 
     APP: {
-      // API Configuration
+      // Application Configuration
+      APP_URL: process.env.APP_URL || 'http://localhost:4201',
+
+      // API Configuration (now user-provided via Settings)
+      // These are kept for backward compatibility but are optional
       TRAKT_CLIENT_ID: process.env.TRAKT_CLIENT_ID || '',
       MAL_CLIENT_ID: process.env.MAL_CLIENT_ID || '',
       IDS_MOE_API_KEY: process.env.IDS_MOE_API_KEY || '',
-      APP_URL: process.env.APP_URL || 'http://localhost:4201',
 
       // API Endpoints
       TRAKT_API_BASE_URL: 'https://api.trakt.tv',
@@ -28,9 +31,9 @@ module.exports = function (environment) {
 
       // OAuth URLs
       TRAKT_AUTH_URL: 'https://trakt.tv/oauth/authorize',
-      TRAKT_TOKEN_URL: '/api/trakt-token',  // Proxied through Vite middleware
+      TRAKT_TOKEN_URL: '/api/trakt-token',  // Serverless function (user credentials via request body)
       MAL_AUTH_URL: 'https://myanimelist.net/v1/oauth2/authorize',
-      MAL_TOKEN_URL: '/api/mal-token',  // Proxied through Vite middleware to avoid CORS
+      MAL_TOKEN_URL: '/api/mal-token',  // Serverless function (user credentials via request body)
     },
   };
 

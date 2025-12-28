@@ -1,5 +1,5 @@
 /**
- * Serverless function for Trakt OAuth token exchange
+ * Serverless function for MyAnimeList OAuth token exchange
  * This function handles the client_secret securely on the server side
  *
  * Accepts user-provided credentials from request body (no environment variables needed)
@@ -23,6 +23,7 @@ export default async function handler(req, res) {
 
   const {
     code,
+    code_verifier,
     redirect_uri,
     grant_type,
     refresh_token,
@@ -38,11 +39,15 @@ export default async function handler(req, res) {
     });
   }
 
-  // Validate request body
-  if (grant_type === 'authorization_code' && (!code || !redirect_uri)) {
+  // Validate request body based on grant type
+  if (
+    grant_type === 'authorization_code' &&
+    (!code || !code_verifier || !redirect_uri)
+  ) {
     return res.status(400).json({
       error: 'Bad request',
-      message: 'code and redirect_uri are required for authorization_code grant',
+      message:
+        'code, code_verifier, and redirect_uri are required for authorization_code grant',
     });
   }
 
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Prepare request body for Trakt API
+    // Prepare request body for MAL API
     const tokenRequestBody = {
       client_id,
       client_secret,
@@ -64,19 +69,23 @@ export default async function handler(req, res) {
     // Add specific fields based on grant type
     if (grant_type === 'authorization_code') {
       tokenRequestBody.code = code;
+      tokenRequestBody.code_verifier = code_verifier;
       tokenRequestBody.redirect_uri = redirect_uri;
     } else if (grant_type === 'refresh_token') {
       tokenRequestBody.refresh_token = refresh_token;
     }
 
     // Exchange code/refresh_token for access token
-    const response = await fetch('https://api.trakt.tv/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      'https://myanimelist.net/v1/oauth2/token',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(tokenRequestBody).toString(),
       },
-      body: JSON.stringify(tokenRequestBody),
-    });
+    );
 
     const data = await response.json();
 
@@ -90,10 +99,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Trakt token exchange error:', error);
+    console.error('MAL token exchange error:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to exchange token with Trakt API',
+      message: 'Failed to exchange token with MAL API',
     });
   }
 }

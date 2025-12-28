@@ -11,6 +11,20 @@ export default class MappingService extends Service {
   @service cache;
   @service trakt;
   @service mal;
+  @service storage;
+
+  /**
+   * Get ids.moe API key from user storage with fallback to config
+   * @returns {string|null} API key or null
+   */
+  getIdsMoeApiKey() {
+    // Try user-provided key first
+    const userKey = this.storage.getUserApiKey('user_ids_moe_api_key');
+    if (userKey) return userKey;
+
+    // Fallback to environment variable (for backward compatibility)
+    return config.APP.IDS_MOE_API_KEY || null;
+  }
 
   /**
    * Get Trakt slug from MAL anime entry
@@ -34,7 +48,8 @@ export default class MappingService extends Service {
       // Try ids.moe API first
       let traktSlug = null;
 
-      if (config.APP.IDS_MOE_API_KEY && malAnime.id) {
+      const idsMoeKey = this.getIdsMoeApiKey();
+      if (idsMoeKey && malAnime.id) {
         const externalIds = await this.getExternalIdsFromIdsMoe('myanimelist', malAnime.id);
 
         // ids.moe returns Trakt ID directly
@@ -83,7 +98,8 @@ export default class MappingService extends Service {
    * @returns {Promise<object|null>} - Object with external IDs or null if not found
    */
   async getExternalIdsFromIdsMoe(sourceType, sourceId) {
-    if (!config.APP.IDS_MOE_API_KEY) {
+    const idsMoeKey = this.getIdsMoeApiKey();
+    if (!idsMoeKey) {
       return null;
     }
 
@@ -93,7 +109,7 @@ export default class MappingService extends Service {
       const response = await idsMoeLimiter.throttle(async () => {
         return fetch(url, {
           headers: {
-            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Authorization': `Bearer ${idsMoeKey}`,
             'Content-Type': 'application/json',
           },
         });
@@ -160,7 +176,8 @@ export default class MappingService extends Service {
       let malId = null;
 
       // Try ids.moe search by title first
-      if (config.APP.IDS_MOE_API_KEY && traktShow.title) {
+      const idsMoeKey = this.getIdsMoeApiKey();
+      if (idsMoeKey && traktShow.title) {
         malId = await this.searchIdsMoeByTitle(traktShow.title);
       }
 
@@ -197,7 +214,8 @@ export default class MappingService extends Service {
    * @returns {Promise<number|null>} - MAL ID or null if not found
    */
   async searchIdsMoeByTitle(title) {
-    if (!config.APP.IDS_MOE_API_KEY) {
+    const idsMoeKey = this.getIdsMoeApiKey();
+    if (!idsMoeKey) {
       return null;
     }
 
@@ -207,7 +225,7 @@ export default class MappingService extends Service {
       const searchResponse = await idsMoeLimiter.throttle(async () => {
         return fetch(searchUrl, {
           headers: {
-            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Authorization': `Bearer ${idsMoeKey}`,
             'Content-Type': 'application/json',
           },
         });
@@ -231,7 +249,7 @@ export default class MappingService extends Service {
       const idsResponse = await idsMoeLimiter.throttle(async () => {
         return fetch(idsUrl, {
           headers: {
-            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Authorization': `Bearer ${idsMoeKey}`,
             'Content-Type': 'application/json',
           },
         });
@@ -256,7 +274,8 @@ export default class MappingService extends Service {
    * @returns {Promise<number|null>} - MAL ID or null if not found
    */
   async getMalIdFromIdsMoe(sourceType, sourceId) {
-    if (!config.APP.IDS_MOE_API_KEY) {
+    const idsMoeKey = this.getIdsMoeApiKey();
+    if (!idsMoeKey) {
       return null;
     }
 
@@ -266,7 +285,7 @@ export default class MappingService extends Service {
       const response = await idsMoeLimiter.throttle(async () => {
         return fetch(url, {
           headers: {
-            'Authorization': `Bearer ${config.APP.IDS_MOE_API_KEY}`,
+            'Authorization': `Bearer ${idsMoeKey}`,
             'Content-Type': 'application/json',
           },
         });

@@ -8,20 +8,22 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   // Make env vars available to Node process for Ember's config/environment.js
-  process.env.TRAKT_CLIENT_ID = env.TRAKT_CLIENT_ID;
-  process.env.MAL_CLIENT_ID = env.MAL_CLIENT_ID;
-  process.env.IDS_MOE_API_KEY = env.IDS_MOE_API_KEY;
+  // Note: API credentials are now user-provided via Settings UI
   process.env.APP_URL = env.APP_URL;
+  process.env.TRAKT_CLIENT_ID = env.TRAKT_CLIENT_ID || '';
+  process.env.MAL_CLIENT_ID = env.MAL_CLIENT_ID || '';
+  process.env.IDS_MOE_API_KEY = env.IDS_MOE_API_KEY || '';
 
   return {
     server: {
       port: 4201,
     },
     define: {
+      // Only APP_URL is required; API credentials are optional (user-provided)
+      'process.env.APP_URL': JSON.stringify(env.APP_URL || 'http://localhost:4201'),
       'process.env.TRAKT_CLIENT_ID': JSON.stringify(env.TRAKT_CLIENT_ID || ''),
       'process.env.MAL_CLIENT_ID': JSON.stringify(env.MAL_CLIENT_ID || ''),
       'process.env.IDS_MOE_API_KEY': JSON.stringify(env.IDS_MOE_API_KEY || ''),
-      'process.env.APP_URL': JSON.stringify(env.APP_URL || 'http://localhost:4201'),
     },
     plugins: [
       // Dev API middleware for serverless functions
@@ -37,27 +39,35 @@ export default defineConfig(({ mode }) => {
               }
 
               try {
-                const { code, redirect_uri, grant_type } = JSON.parse(body);
+                const { code, redirect_uri, grant_type, refresh_token, client_id, client_secret } = JSON.parse(body);
 
-                if (!env.TRAKT_CLIENT_ID || !env.TRAKT_CLIENT_SECRET) {
-                  res.writeHead(500, { 'Content-Type': 'application/json' });
+                // Validate user-provided credentials
+                if (!client_id || !client_secret) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
                   res.end(JSON.stringify({
-                    error: 'Server configuration error',
-                    message: 'TRAKT_CLIENT_SECRET not set in .env.development.local'
+                    error: 'Bad request',
+                    message: 'client_id and client_secret are required'
                   }));
                   return;
+                }
+
+                const tokenRequestBody = {
+                  client_id,
+                  client_secret,
+                  grant_type: grant_type || 'authorization_code',
+                };
+
+                if (grant_type === 'authorization_code') {
+                  tokenRequestBody.code = code;
+                  tokenRequestBody.redirect_uri = redirect_uri;
+                } else if (grant_type === 'refresh_token') {
+                  tokenRequestBody.refresh_token = refresh_token;
                 }
 
                 const tokenResponse = await fetch('https://api.trakt.tv/oauth/token', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    code,
-                    client_id: env.TRAKT_CLIENT_ID,
-                    client_secret: env.TRAKT_CLIENT_SECRET,
-                    redirect_uri,
-                    grant_type: grant_type || 'authorization_code',
-                  }),
+                  body: JSON.stringify(tokenRequestBody),
                 });
 
                 const data = await tokenResponse.json();
@@ -84,18 +94,15 @@ export default defineConfig(({ mode }) => {
               try {
                 const params = JSON.parse(body);
 
-                // MAL requires client_secret even for PKCE flows (web app type)
-                if (!env.MAL_CLIENT_SECRET) {
-                  res.writeHead(500, { 'Content-Type': 'application/json' });
+                // Validate user-provided credentials
+                if (!params.client_id || !params.client_secret) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
                   res.end(JSON.stringify({
-                    error: 'Server configuration error',
-                    message: 'MAL_CLIENT_SECRET not set in .env.development.local'
+                    error: 'Bad request',
+                    message: 'client_id and client_secret are required'
                   }));
                   return;
                 }
-
-                // MAL requires client_secret in body + X-MAL-Client-ID header
-                params.client_secret = env.MAL_CLIENT_SECRET;
 
                 // Forward the request to MAL with required X-MAL-Client-ID header
                 const tokenResponse = await fetch('https://myanimelist.net/v1/oauth2/token', {

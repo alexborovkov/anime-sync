@@ -89,4 +89,70 @@ export default class StorageService extends Service {
 
     return Date.now() >= expiresAt;
   }
+
+  /**
+   * Set a user-provided API key
+   * @param {string} keyName - API key name (e.g., 'user_trakt_client_id')
+   * @param {string} value - API key value
+   */
+  setUserApiKey(keyName, value) {
+    // eslint-disable-next-line ember/classic-decorator-no-classic-methods
+    this.set(keyName, value);
+  }
+
+  /**
+   * Get a user-provided API key
+   * @param {string} keyName - API key name
+   * @returns {string|null} The API key or null
+   */
+  getUserApiKey(keyName) {
+    // eslint-disable-next-line ember/classic-decorator-no-classic-methods
+    return this.get(keyName);
+  }
+
+  /**
+   * Remove a user-provided API key
+   * @param {string} keyName - API key name
+   */
+  removeUserApiKey(keyName) {
+    this.remove(keyName);
+  }
+
+  /**
+   * Check if all required user API keys are configured
+   * @returns {boolean} True if Trakt and MAL keys are configured
+   */
+  hasRequiredKeys() {
+    const traktClientId = this.getUserApiKey('user_trakt_client_id');
+    const traktClientSecret = this.getUserApiKey('user_trakt_client_secret');
+    const malClientId = this.getUserApiKey('user_mal_client_id');
+    const malClientSecret = this.getUserApiKey('user_mal_client_secret');
+
+    return !!(
+      traktClientId &&
+      traktClientSecret &&
+      malClientId &&
+      malClientSecret
+    );
+  }
+
+  /**
+   * Check if Trakt API keys are configured
+   * @returns {boolean} True if configured
+   */
+  hasTraktKeys() {
+    const clientId = this.getUserApiKey('user_trakt_client_id');
+    const clientSecret = this.getUserApiKey('user_trakt_client_secret');
+    return !!(clientId && clientSecret);
+  }
+
+  /**
+   * Check if MAL API keys are configured
+   * @returns {boolean} True if configured
+   */
+  hasMALKeys() {
+    const clientId = this.getUserApiKey('user_mal_client_id');
+    const clientSecret = this.getUserApiKey('user_mal_client_secret');
+    return !!(clientId && clientSecret);
+  }
 }

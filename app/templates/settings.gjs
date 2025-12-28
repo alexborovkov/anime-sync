@@ -6,6 +6,7 @@ import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { LinkTo } from '@ember/routing';
 import ConnectionCard from 'trakt-mal-sync/components/connection-card';
+import ApiKeyConfig from 'trakt-mal-sync/components/api-key-config';
 // eslint-disable-next-line no-unused-vars
 import OAuthService from 'trakt-mal-sync/services/oauth';
 // eslint-disable-next-line no-unused-vars
@@ -85,6 +86,12 @@ class SettingsComponent extends Component {
             </LinkTo>
             <h1 class="text-4xl font-bold text-white mb-2">Settings</h1>
             <p class="text-gray-300">Manage your connections and application settings</p>
+          </div>
+
+          {{! API Configuration }}
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold text-white mb-4">API Configuration</h2>
+            <ApiKeyConfig />
           </div>
 
           {{! Connection Settings }}

@@ -86,6 +86,14 @@ export default class OAuthService extends Service {
    * Initiate MAL authentication with PKCE flow
    */
   async initiateMALAuth() {
+    // Check if user has configured MAL API keys
+    const malClientId = this.storage.getUserApiKey('user_mal_client_id');
+    if (!malClientId) {
+      throw new Error(
+        'Please configure your MAL API credentials in Settings before connecting',
+      );
+    }
+
     const codeVerifier = this.generateCodeVerifier();
     // MAL only supports "plain" PKCE method, not S256
     const codeChallenge = codeVerifier; // plain method: challenge = verifier
@@ -97,7 +105,7 @@ export default class OAuthService extends Service {
 
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: config.APP.MAL_CLIENT_ID,
+      client_id: malClientId,
       code_challenge: codeChallenge,
       code_challenge_method: 'plain',
       state,
@@ -124,12 +132,21 @@ export default class OAuthService extends Service {
       throw new Error('Code verifier not found');
     }
 
+    // Get user API keys
+    const malClientId = this.storage.getUserApiKey('user_mal_client_id');
+    const malClientSecret = this.storage.getUserApiKey('user_mal_client_secret');
+
+    if (!malClientId || !malClientSecret) {
+      throw new Error('MAL API credentials not found in Settings');
+    }
+
     // Exchange code for tokens via proxy to avoid CORS
     const response = await fetch('/api/mal-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: config.APP.MAL_CLIENT_ID,
+        client_id: malClientId,
+        client_secret: malClientSecret,
         code,
         code_verifier: codeVerifier,
         grant_type: 'authorization_code',
@@ -170,11 +187,20 @@ export default class OAuthService extends Service {
       throw new Error('No refresh token available');
     }
 
+    // Get user API keys
+    const malClientId = this.storage.getUserApiKey('user_mal_client_id');
+    const malClientSecret = this.storage.getUserApiKey('user_mal_client_secret');
+
+    if (!malClientId || !malClientSecret) {
+      throw new Error('MAL API credentials not found in Settings');
+    }
+
     const response = await fetch('/api/mal-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: config.APP.MAL_CLIENT_ID,
+        client_id: malClientId,
+        client_secret: malClientSecret,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
       }),
@@ -204,12 +230,20 @@ export default class OAuthService extends Service {
    * Initiate Trakt authentication
    */
   async initiateTraktAuth() {
+    // Check if user has configured Trakt API keys
+    const traktClientId = this.storage.getUserApiKey('user_trakt_client_id');
+    if (!traktClientId) {
+      throw new Error(
+        'Please configure your Trakt API credentials in Settings before connecting',
+      );
+    }
+
     const state = this.generateState();
     sessionStorage.setItem('trakt_oauth_state', state);
 
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: config.APP.TRAKT_CLIENT_ID,
+      client_id: traktClientId,
       redirect_uri: `${config.APP.APP_URL}/auth/trakt-callback`,
       state,
     });
@@ -229,11 +263,23 @@ export default class OAuthService extends Service {
       throw new Error('Invalid OAuth state - possible CSRF attack');
     }
 
+    // Get user API keys
+    const traktClientId = this.storage.getUserApiKey('user_trakt_client_id');
+    const traktClientSecret = this.storage.getUserApiKey(
+      'user_trakt_client_secret',
+    );
+
+    if (!traktClientId || !traktClientSecret) {
+      throw new Error('Trakt API credentials not found in Settings');
+    }
+
     // Call serverless function for token exchange
     const response = await fetch(config.APP.TRAKT_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        client_id: traktClientId,
+        client_secret: traktClientSecret,
         code,
         redirect_uri: `${config.APP.APP_URL}/auth/trakt-callback`,
         grant_type: 'authorization_code',
@@ -274,10 +320,22 @@ export default class OAuthService extends Service {
       throw new Error('No refresh token available');
     }
 
+    // Get user API keys
+    const traktClientId = this.storage.getUserApiKey('user_trakt_client_id');
+    const traktClientSecret = this.storage.getUserApiKey(
+      'user_trakt_client_secret',
+    );
+
+    if (!traktClientId || !traktClientSecret) {
+      throw new Error('Trakt API credentials not found in Settings');
+    }
+
     const response = await fetch(config.APP.TRAKT_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        client_id: traktClientId,
+        client_secret: traktClientSecret,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
       }),
