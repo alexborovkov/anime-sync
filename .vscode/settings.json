@@ -1,0 +1,29 @@
+{
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "glint.glintFormatting": true,
+  "files.associations": {
+    "*.gjs": "javascript",
+    "*.gts": "typescript"
+  },
+  "emmet.includeLanguages": {
+    "gjs": "html",
+    "gts": "html"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "gjs"
+  ],
+  "javascript.suggest.paths": true,
+  "javascript.suggest.autoImports": true,
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[gjs]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
