@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Small description for trakt-mal-sync goes here",
-  "repository": "",
+  "repository": "https://github.com/aborovkov/anime-sync",
   "license": "MIT",
   "author": "",
   "directories": {
@@ -12,6 +12,8 @@
   },
   "scripts": {
     "build": "vite build",
+    "predeploy": "yarn build",
+    "deploy": "gh-pages -d dist",
     "format": "prettier . --cache --write",
     "lint": "concurrently \"npm:lint:*(!fix)\" --names \"lint:\" --prefixColors auto",
     "lint:css": "stylelint \"**/*.css\"",
@@ -79,6 +81,7 @@
     "eslint-plugin-ember": "^12.7.5",
     "eslint-plugin-n": "^17.23.1",
     "eslint-plugin-qunit": "^8.2.5",
+    "gh-pages": "^6.3.0",
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "prettier": "^3.7.3",
