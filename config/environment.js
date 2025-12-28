@@ -58,10 +58,10 @@ module.exports = function (environment) {
   }
 
   if (environment === 'production') {
-    // GitHub Pages configuration
-    ENV.rootURL = '/anime-sync/';
-    ENV.locationType = 'hash'; // Use hash routing for GitHub Pages
-    ENV.APP.APP_URL = process.env.APP_URL || 'https://alexborovkov.github.io/anime-sync';
+    // Vercel deployment configuration
+    ENV.rootURL = '/';
+    ENV.locationType = 'history'; // Use history routing on Vercel (supports proper routing)
+    ENV.APP.APP_URL = process.env.APP_URL || 'https://anime-sync.vercel.app';
   }
 
   return ENV;

@@ -6,13 +6,7 @@ export default class AuthMalCallbackRoute extends Route {
   @service router;
 
   async model(params) {
-    // With hash routing, query params are in the hash fragment
-    // URL: /#/auth/mal-callback?code=...&state=...
-    const hash = window.location.hash;
-    const queryStringStart = hash.indexOf('?');
-    const queryString = queryStringStart !== -1 ? hash.substring(queryStringStart + 1) : '';
-
-    const urlParams = new URLSearchParams(queryString);
+    const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const error = urlParams.get('error');

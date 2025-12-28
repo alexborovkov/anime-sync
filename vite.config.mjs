@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
   process.env.IDS_MOE_API_KEY = env.IDS_MOE_API_KEY || '';
 
   return {
-    base: mode === 'production' ? '/anime-sync/' : '/',
+    base: '/',
     server: {
       port: 4201,
     },
