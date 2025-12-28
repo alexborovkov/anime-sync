@@ -165,7 +165,7 @@ export default class ApiKeyConfig extends Component {
       <div class="mb-6">
         <h3 class="text-lg font-bold text-white mb-2">API Credentials</h3>
         <p class="text-gray-300 text-sm mb-4">
-          This application requires your own API credentials. Your keys are stored locally in your browser and never sent to our servers (except when making authorized API calls to Trakt and MAL).
+          This application requires your own API credentials. Your keys are stored locally in your browser and never sent to our servers (except when making authorized API calls to Trakt, MAL, and ids.moe).
         </p>
       </div>
 
@@ -270,14 +270,14 @@ export default class ApiKeyConfig extends Component {
         </div>
       </div>
 
-      {{! ids.moe API Key (optional) }}
+      {{! ids.moe API Key }}
       <div class="mb-6">
         <div class="flex items-center mb-3">
-          <h4 class="text-white font-medium flex-1">ids.moe API Key (Optional)</h4>
+          <h4 class="text-white font-medium flex-1">ids.moe API Key</h4>
           {{#if this.hasIdsMoeKey}}
             <span class="text-green-400 text-sm">Configured</span>
           {{else}}
-            <span class="text-gray-400 text-sm">Not configured</span>
+            <span class="text-yellow-400 text-sm">Not configured</span>
           {{/if}}
         </div>
         <p class="text-gray-400 text-sm mb-3">
@@ -290,7 +290,7 @@ export default class ApiKeyConfig extends Component {
           >
             ids.moe
           </a>
-          (improves anime ID matching accuracy)
+          (required for accurate anime ID matching)
         </p>
 
         <div>
@@ -301,7 +301,7 @@ export default class ApiKeyConfig extends Component {
             type="password"
             value={{this.idsMoeApiKey}}
             {{on "input" this.updateIdsMoeApiKey}}
-            placeholder="Enter your ids.moe API key (optional)"
+            placeholder="Enter your ids.moe API key"
             class="w-full bg-gray-700 border border-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:border-blue-500"
           />
         </div>

@@ -39,6 +39,10 @@ class DashboardComponent extends Component {
       return this.storage.hasMALKeys();
     }
 
+    get hasIdsMoeKey() {
+      return !!this.storage.getUserApiKey('user_ids_moe_api_key');
+    }
+
     @action
     async connectTrakt() {
       try {
@@ -109,6 +113,10 @@ class DashboardComponent extends Component {
                   <div class="flex items-center gap-2">
                     <span>{{if this.hasMALKeys "✅" "❌"}}</span>
                     <span>MyAnimeList API credentials</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span>{{if this.hasIdsMoeKey "✅" "❌"}}</span>
+                    <span>ids.moe API key</span>
                   </div>
                 </div>
                 <LinkTo

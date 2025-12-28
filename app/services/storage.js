@@ -120,19 +120,21 @@ export default class StorageService extends Service {
 
   /**
    * Check if all required user API keys are configured
-   * @returns {boolean} True if Trakt and MAL keys are configured
+   * @returns {boolean} True if Trakt, MAL, and ids.moe keys are configured
    */
   hasRequiredKeys() {
     const traktClientId = this.getUserApiKey('user_trakt_client_id');
     const traktClientSecret = this.getUserApiKey('user_trakt_client_secret');
     const malClientId = this.getUserApiKey('user_mal_client_id');
     const malClientSecret = this.getUserApiKey('user_mal_client_secret');
+    const idsMoeApiKey = this.getUserApiKey('user_ids_moe_api_key');
 
     return !!(
       traktClientId &&
       traktClientSecret &&
       malClientId &&
-      malClientSecret
+      malClientSecret &&
+      idsMoeApiKey
     );
   }
 
