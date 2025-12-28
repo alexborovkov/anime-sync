@@ -61,7 +61,7 @@ module.exports = function (environment) {
     // Vercel deployment configuration
     ENV.rootURL = '/';
     ENV.locationType = 'history'; // Use history routing on Vercel (supports proper routing)
-    ENV.APP.APP_URL = process.env.APP_URL || 'https://anime-sync.vercel.app';
+    ENV.APP.APP_URL = process.env.APP_URL || 'https://anime-sync-gold.vercel.app';
   }
 
   return ENV;
