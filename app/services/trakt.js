@@ -32,13 +32,19 @@ export default class TraktService extends Service {
     return traktLimiter.throttle(async () => {
       const url = `${config.APP.TRAKT_API_BASE_URL}${endpoint}`;
 
+      // Get user's Trakt Client ID from storage
+      const traktClientId = this.storage.getUserApiKey('user_trakt_client_id');
+      if (!traktClientId) {
+        throw new Error('Trakt Client ID not configured. Please add it in Settings.');
+      }
+
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
           'trakt-api-version': '2',
-          'trakt-api-key': config.APP.TRAKT_CLIENT_ID,
+          'trakt-api-key': traktClientId,
           ...options.headers,
         },
       });
