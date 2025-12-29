@@ -9,6 +9,10 @@
     "api/mal-token.js": {
       "memory": 128,
       "maxDuration": 10
+    },
+    "api/mal.js": {
+      "memory": 128,
+      "maxDuration": 10
     }
   },
   "headers": [
@@ -36,7 +40,11 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/mal/:path*",
+      "destination": "/api/mal"
+    },
+    {
+      "source": "/((?!api).*)",
       "destination": "/index.html"
     }
   ]
