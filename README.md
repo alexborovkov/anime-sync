@@ -2,6 +2,12 @@
 
 A centralized web application for bidirectional synchronization of anime lists between Trakt.tv and MyAnimeList (MAL).
 
+## 🚀 Live App
+
+**Try it now:** [https://anime-sync-gold.vercel.app](https://anime-sync-gold.vercel.app)
+
+No installation required - just configure your API keys and start syncing!
+
 ## Features
 
 - 🔄 **Bidirectional Sync**: Transfer your anime lists between Trakt and MyAnimeList
@@ -19,22 +25,24 @@ A centralized web application for bidirectional synchronization of anime lists b
 This is a **client-side application with user-provided credentials**:
 - All code runs in your browser
 - Users configure their own API keys in Settings
-- Two serverless functions for OAuth token exchange (Trakt & MAL)
+- Three serverless functions for OAuth & API proxying (Trakt token, MAL token, MAL API proxy)
 - No backend database required
 - Zero admin API credentials needed for deployment
-- Can be deployed to static hosting (Vercel, Netlify, GitHub Pages)
+- Deployed on Vercel (supports serverless functions)
 
 ## For Users
 
 ### Using the Deployed App
 
-1. Visit the deployed application
+1. Visit [https://anime-sync-gold.vercel.app](https://anime-sync-gold.vercel.app)
 2. Go to **Settings**
 3. Configure your API keys:
    - **Trakt Client ID & Secret** - Register at [trakt.tv/oauth/applications](https://trakt.tv/oauth/applications)
    - **MAL Client ID & Secret** - Register at [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig)
-   - **ids.moe API Key** (optional) - Get from [ids.moe](https://ids.moe/)
+   - **ids.moe API Key** - Get from [ids.moe](https://ids.moe/)
 4. Connect your accounts and start syncing!
+
+**Note:** The app displays the correct redirect URIs for you to copy when registering your API applications.
 
 ### Getting Your API Keys
 
@@ -44,9 +52,12 @@ This is a **client-side application with user-provided credentials**:
 2. Click "New Application"
 3. Fill in details:
    - **Name**: "My Anime Sync" (or anything you like)
-   - **Redirect URI**: The callback URL shown in Settings (e.g., `https://app-url.com/auth/trakt-callback`)
+   - **Redirect URI**: Copy from Settings page (e.g., `https://anime-sync-gold.vercel.app/auth/trakt-callback`)
+   - **Javascript (cors) origins**: Copy from Settings page (e.g., `https://anime-sync-gold.vercel.app`)
 4. Save your **Client ID** and **Client Secret**
 5. Enter both in the app's Settings page
+
+**Important:** The CORS origin is required for the app to make API calls to Trakt from your browser.
 
 #### MyAnimeList API
 
@@ -55,15 +66,15 @@ This is a **client-side application with user-provided credentials**:
 3. Fill in details:
    - **App Name**: "My Anime Sync" (or anything you like)
    - **App Type**: "web"
-   - **App Redirect URL**: The callback URL shown in Settings (e.g., `https://app-url.com/auth/mal-callback`)
+   - **App Redirect URL**: Copy from Settings page (e.g., `https://anime-sync-gold.vercel.app/auth/mal-callback`)
 4. Save your **Client ID** and **Client Secret**
 5. Enter both in the app's Settings page
 
-#### ids.moe API (Optional but Recommended)
+#### ids.moe API (Required)
 
 1. Visit [https://ids.moe/](https://ids.moe/)
 2. Sign up for a free API key
-3. This improves anime ID mapping accuracy between Trakt and MAL
+3. This is required for accurate anime ID mapping between Trakt and MAL
 4. Enter in the app's Settings page
 
 ---
@@ -146,37 +157,41 @@ yarn build
 
 ### Deploy to Vercel (Recommended)
 
-1. Fork/clone the repository
-2. Connect to Vercel
-3. Set **only one** environment variable:
-   - \`APP_URL\` = your deployment URL (e.g., `https://anime-sync.vercel.app`)
+**Option 1: Use the Official Instance**
+- Visit [https://anime-sync-gold.vercel.app](https://anime-sync-gold.vercel.app)
+- Configure your own API keys in Settings
+- No deployment needed!
 
-4. Deploy!
+**Option 2: Deploy Your Own Instance**
+
+1. **Install Vercel CLI:**
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Clone and Deploy:**
+   ```bash
+   git clone https://github.com/alexborovkov/anime-sync.git
+   cd anime-sync
+   vercel login
+   vercel --prod
+   ```
+
+3. **Set Environment Variable (optional):**
+   - Vercel will auto-detect the URL, or you can set:
+   - `APP_URL` = your deployment URL (e.g., `https://your-app.vercel.app`)
 
 **That's it!** No API credentials needed. Users provide their own keys when they use the app.
 
-### Deploy to Netlify
+### Why Vercel?
 
-1. Create \`netlify.toml\`:
+- ✅ **Serverless Functions**: Required for OAuth token exchange and MAL API proxy
+- ✅ **Free Tier**: More than enough for personal use
+- ✅ **Auto HTTPS**: Automatic SSL certificates
+- ✅ **Git Integration**: Auto-deploys on push
+- ✅ **Fast CDN**: Global edge network
 
-\`\`\`toml
-[build]
-  command = "yarn build"
-  publish = "dist"
-
-[functions]
-  directory = "api"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-\`\`\`
-
-2. Set environment variable:
-   - \`APP_URL\` = your deployment URL
-
-3. Deploy via Git integration or CLI
+**Note:** GitHub Pages doesn't support serverless functions, so Vercel/Netlify are required for this app.
 
 ### Why So Simple?
 
@@ -190,10 +205,11 @@ This architecture uses **user-provided API credentials**:
 ## Project Structure
 
 \`\`\`
-trakt-mal-sync/
+anime-sync/
 ├── api/                          # Serverless functions
 │   ├── trakt-token.js           # Trakt OAuth token exchange
-│   └── mal-token.js             # MAL OAuth token exchange
+│   ├── mal-token.js             # MAL OAuth token exchange
+│   └── mal.js                   # MAL API proxy (CORS handling)
 ├── app/
 │   ├── components/              # UI components
 │   │   ├── api-key-config.gjs  # API key configuration UI
@@ -292,10 +308,14 @@ Make sure your redirect URIs match exactly in:
 
 ### CORS Errors
 
-Both Trakt and MAL APIs support CORS for authenticated requests. If you see CORS errors:
-1. Check that you're using the correct API endpoints
-2. Ensure tokens are valid and not expired
-3. Check browser console for specific error messages
+**Trakt CORS:**
+- Make sure you've added the CORS origin in your Trakt app settings
+- Go to [trakt.tv/oauth/applications](https://trakt.tv/oauth/applications)
+- Add the origin shown in Settings → "Trakt CORS Origin" (e.g., `https://anime-sync-gold.vercel.app`)
+
+**MAL CORS:**
+- MAL API calls are automatically proxied through `/api/mal` serverless function
+- No additional CORS configuration needed
 
 ### Mapping Issues
 
@@ -343,8 +363,14 @@ A: Your keys are stored only in your browser's localStorage and are never sent t
 **Q: Can I use the app without registering API apps?**
 A: No, API credentials are required for the app to function. But registration is free and takes just a few minutes.
 
+**Q: Can I use the official instance or do I need to deploy my own?**
+A: You can use the official instance at [anime-sync-gold.vercel.app](https://anime-sync-gold.vercel.app)! Just configure your own API keys in Settings.
+
 **Q: What if I deploy my own instance?**
 A: You still don't need to configure any API credentials for deployment! Users will provide their own keys when they use your instance.
+
+**Q: Why do I need to add a CORS origin for Trakt?**
+A: Trakt requires you to whitelist the domain that will make API calls from the browser. This is a security feature. Copy the CORS origin from Settings and paste it in your Trakt app configuration.
 
 ---
 
