@@ -63,7 +63,21 @@ export default class TraktService extends Service {
         );
       }
 
-      return response.json();
+      // Handle empty responses (204 No Content)
+      if (response.status === 204) {
+        return null;
+      }
+
+      // Get response text first
+      const responseText = await response.text();
+
+      // Parse JSON with error handling
+      try {
+        return JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse Trakt API response as JSON:', responseText.substring(0, 200));
+        throw new Error('Trakt API returned invalid response. Please check your API credentials in Settings.');
+      }
     });
   }
 
