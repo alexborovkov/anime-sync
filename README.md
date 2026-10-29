@@ -14,7 +14,7 @@ No installation required - just configure your API keys and start syncing!
 - 🔐 **Secure OAuth**: User-provided API keys with client-side storage
 - 🌐 **Centralized Deployment**: One instance serves all users
 - 💾 **Smart Caching**: IndexedDB for offline support and faster performance
-- 🎯 **Smart Mapping**: API-based anime matching with title similarity and year validation via ids.moe
+- 🎯 **Smart Mapping**: Title-based matching through Trakt and MyAnimeList, with optional ids.moe lookups
 - 📊 **Preview Changes**: Review sync operations before executing
 - ⚡ **Rate Limited**: Respects API limits (Trakt: 1000/5min, MAL: 60/min) - per user
 - 🎨 **Modern UI**: Built with Tailwind CSS and Ember.js
@@ -39,8 +39,8 @@ This is a **client-side application with user-provided credentials**:
 3. Configure your API keys:
    - **Trakt Client ID & Secret** - Register at [trakt.tv/oauth/applications](https://trakt.tv/oauth/applications)
    - **MAL Client ID & Secret** - Register at [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig)
-   - **ids.moe API Key** - Get from [ids.moe](https://ids.moe/)
-4. Connect your accounts and start syncing!
+4. Save your keys with the optional **ids.moe API Key** field left blank.
+5. Connect both accounts, preview the matches, and start syncing!
 
 **Note:** The app displays the correct redirect URIs for you to copy when registering your API applications.
 
@@ -70,12 +70,24 @@ This is a **client-side application with user-provided credentials**:
 4. Save your **Client ID** and **Client Secret**
 5. Enter both in the app's Settings page
 
-#### ids.moe API (Required)
+#### ids.moe API (Optional)
 
-1. Visit [https://ids.moe/](https://ids.moe/)
-2. Sign up for a free API key
-3. This is required for accurate anime ID mapping between Trakt and MAL
-4. Enter in the app's Settings page
+You do not need an ids.moe account or API key. Leave its field blank in Settings
+to match anime by title through the Trakt and MyAnimeList APIs in either sync
+direction. Only the Trakt and MAL credentials above are required.
+
+Existing ids.moe keys are still supported. When a key is configured, the app
+tries ids.moe first and falls back to title matching if the request fails or no
+mapping is found. Clear an old key in Settings and save to skip these requests.
+For self-hosted instances, also leave the legacy `IDS_MOE_API_KEY` environment
+variable unset if you want to disable ids.moe entirely.
+
+Title matching uses title similarity (including available alternative titles)
+and a year bonus when both services supply a year. Similar titles, seasons,
+remakes, and movies can be ambiguous. The sync preview shows each source title
+alongside the matched destination ID and a link to its Trakt or MAL page. Open
+these links to verify the matches, and cancel the sync if they look incorrect.
+Entries without a suitable match are skipped.
 
 ---
 
@@ -221,7 +233,7 @@ anime-sync/
 │   │   ├── cache.js            # IndexedDB cache
 │   │   ├── trakt.js            # Trakt API client
 │   │   ├── mal.js              # MAL API client
-│   │   ├── mapping.js          # ID mapping service (uses ids.moe)
+│   │   ├── mapping.js          # Title matching with optional ids.moe lookups
 │   │   └── sync-engine.js      # Sync logic
 │   ├── templates/              # Route templates
 │   │   └── settings.gjs        # Settings page with API config
@@ -257,7 +269,7 @@ anime-sync/
 ### Sync Process
 
 1. **Fetch Data**: Get anime lists from both services using user's API keys
-2. **Map IDs**: Use ids.moe API (if key provided) or fallback to title matching
+2. **Map IDs**: Reuse cached mappings, then use title matching through Trakt/MAL. If an optional ids.moe key is configured, try it first and fall back on failures or missing mappings.
 3. **Analyze**: Compare entries and identify differences
 4. **Preview**: Show user what will change
 5. **Execute**: Perform sync operations with progress tracking
@@ -266,7 +278,7 @@ anime-sync/
 ### Data Storage
 
 - **localStorage**:
-  - User API keys (Trakt, MAL, ids.moe) - obfuscated with base64
+  - User API keys (Trakt, MAL, and optionally ids.moe) - obfuscated with base64
   - OAuth tokens
   - User settings
 - **IndexedDB**: Anime mapping cache, API response cache, sync history
@@ -293,7 +305,7 @@ anime-sync/
 
 - **Trakt**: 1000 requests per 5 minutes (per user's API key)
 - **MyAnimeList**: ~60 requests per minute (per user's API key)
-- **ids.moe**: Varies by plan (rate limited per user's API key)
+- **ids.moe (optional)**: Requests are rate limited and only made when a key is configured
 
 The app automatically throttles requests to stay within limits. Since each user has their own API credentials, there are no shared rate limits.
 
@@ -320,10 +332,10 @@ Make sure your redirect URIs match exactly in:
 ### Mapping Issues
 
 If anime aren't mapping correctly:
-1. Configure an ids.moe API key in Settings for better accuracy
-2. Check browser DevTools → Application → IndexedDB for cached mappings
-3. Clear mapping cache in Settings if you suspect stale data
-4. The app falls back to title-based matching if ids.moe is unavailable
+1. Ensure both Trakt and MAL accounts are connected so their title-search APIs can be used
+2. Review the sync preview for ambiguous titles or seasons; cancel if matches look incorrect
+3. Check browser DevTools → Application → IndexedDB for cached mappings, and clear the mapping cache in Settings if you suspect stale data
+4. If ids.moe cannot be resolved, clear its optional key in Settings and save. Self-hosted instances should also unset `IDS_MOE_API_KEY`. Synchronization will use title matching without contacting ids.moe.
 
 ### API Key Issues
 
@@ -361,7 +373,10 @@ A: This architecture provides better scalability, privacy, and rate limit isolat
 A: Your keys are stored only in your browser's localStorage and are never sent to our servers except when making authorized API calls to Trakt and MAL. However, anyone with access to your browser can see them in DevTools.
 
 **Q: Can I use the app without registering API apps?**
-A: No, API credentials are required for the app to function. But registration is free and takes just a few minutes.
+A: You need Trakt and MyAnimeList API credentials. An ids.moe account or key is optional.
+
+**Q: Can I sync if ids.moe is unavailable?**
+A: Yes. Leave the ids.moe key blank and connect Trakt and MAL. The app matches titles through those services. If an existing ids.moe key is present, failed lookups also fall back to title matching. Review the preview before syncing, as title matches can be ambiguous.
 
 **Q: Can I use the official instance or do I need to deploy my own?**
 A: You can use the official instance at [anime-sync-gold.vercel.app](https://anime-sync-gold.vercel.app)! Just configure your own API keys in Settings.

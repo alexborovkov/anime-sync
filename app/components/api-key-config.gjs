@@ -98,9 +98,6 @@ export default class ApiKeyConfig extends Component {
       if (!this.malClientId || !this.malClientSecret) {
         throw new Error('MAL Client ID and Client Secret are required');
       }
-      if (!this.idsMoeApiKey) {
-        throw new Error('ids.moe API key is required');
-      }
 
       // Save to storage
       this.storage.setUserApiKey('user_trakt_client_id', this.traktClientId);
@@ -270,24 +267,18 @@ export default class ApiKeyConfig extends Component {
       {{! ids.moe API Key }}
       <div class="mb-6">
         <div class="flex items-center mb-3">
-          <h4 class="text-white font-medium flex-1">ids.moe API Key</h4>
+          <h4 class="text-white font-medium flex-1">ids.moe API Key (Optional)</h4>
           {{#if this.hasIdsMoeKey}}
             <span class="text-green-400 text-sm">Configured</span>
           {{else}}
-            <span class="text-yellow-400 text-sm">Not configured</span>
+            <span class="text-gray-400 text-sm">Using title matching</span>
           {{/if}}
         </div>
         <p class="text-gray-400 text-sm mb-3">
-          Get your API key at
-          <a
-            href="https://ids.moe/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-blue-400 hover:underline"
-          >
-            ids.moe
-          </a>
-          (required for accurate anime ID matching)
+          Leave this blank to match anime by title using Trakt and MyAnimeList.
+          If you already have an ids.moe key, you can optionally use it. Title
+          matching is also used when ids.moe is unavailable or finds no match.
+          Review the sync preview before applying changes.
         </p>
 
         <div>
@@ -298,7 +289,7 @@ export default class ApiKeyConfig extends Component {
             type="password"
             value={{this.idsMoeApiKey}}
             {{on "input" this.updateIdsMoeApiKey}}
-            placeholder="Enter your ids.moe API key"
+            placeholder="Optional ids.moe API key"
             class="w-full bg-gray-700 border border-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:border-blue-500"
           />
         </div>
@@ -306,7 +297,7 @@ export default class ApiKeyConfig extends Component {
 
       {{! Error Message }}
       {{#if (eq this.saveStatus "error")}}
-        <div class="mb-4 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded">
+        <div data-test-api-key-error class="mb-4 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded">
           {{this.errorMessage}}
         </div>
       {{/if}}
@@ -314,6 +305,7 @@ export default class ApiKeyConfig extends Component {
       {{! Action Buttons }}
       <div class="flex gap-3">
         <button
+          data-test-save-api-keys
           type="button"
           {{on "click" this.saveKeys}}
           disabled={{eq this.saveStatus "saving"}}

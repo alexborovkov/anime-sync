@@ -40,8 +40,9 @@ export default class MappingService extends Service {
     // Check cache first
     const cacheKey = `mal-${malAnime.id}`;
     const cached = await this.cache.get('animeMapping', cacheKey);
-    if (cached && cached.traktSlug) {
-      return cached.traktSlug;
+    const cachedSlug = cached?.traktId || cached?.traktSlug;
+    if (cachedSlug) {
+      return cachedSlug;
     }
 
     try {
