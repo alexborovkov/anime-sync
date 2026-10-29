@@ -112,6 +112,38 @@ module('Unit | Service | mapping | optional ids.moe', function (hooks) {
     assert.strictEqual(this.cache.writes[0].value.traktId, 'cowboy-bebop');
   });
 
+  test('reuses a MAL-to-Trakt mapping on a repeated lookup', async function (assert) {
+    assert.strictEqual(
+      await this.mapping.getTraktSlugFromMAL(malAnime),
+      'cowboy-bebop'
+    );
+    assert.strictEqual(
+      await this.mapping.getTraktSlugFromMAL(malAnime),
+      'cowboy-bebop'
+    );
+    assert.deepEqual(
+      this.trakt.searches,
+      ['Cowboy Bebop'],
+      'does not search again'
+    );
+    assert.strictEqual(
+      this.cache.writes.length,
+      1,
+      'does not rewrite a cached match'
+    );
+    assert.deepEqual(this.fetchCalls, []);
+  });
+
+  test('still reads legacy cached Trakt slugs', async function (assert) {
+    this.cache.records.set('animeMapping:mal-1', { traktSlug: 'cowboy-bebop' });
+    assert.strictEqual(
+      await this.mapping.getTraktSlugFromMAL(malAnime),
+      'cowboy-bebop'
+    );
+    assert.deepEqual(this.trakt.searches, []);
+    assert.deepEqual(this.fetchCalls, []);
+  });
+
   test('maps Trakt to MAL by title without contacting ids.moe', async function (assert) {
     assert.strictEqual(await this.mapping.getMALIdFromTrakt(traktShow), 1);
     assert.deepEqual(this.mal.searches, ['Cowboy Bebop']);

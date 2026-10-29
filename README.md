@@ -84,9 +84,10 @@ variable unset if you want to disable ids.moe entirely.
 
 Title matching uses title similarity (including available alternative titles)
 and a year bonus when both services supply a year. Similar titles, seasons,
-remakes, and movies can be ambiguous; review the sync preview and cancel
-the sync if matches look incorrect. Entries without a suitable match
-are skipped.
+remakes, and movies can be ambiguous. The sync preview shows each source title
+alongside the matched destination ID and a link to its Trakt or MAL page. Open
+these links to verify the matches, and cancel the sync if they look incorrect.
+Entries without a suitable match are skipped.
 
 ---
 

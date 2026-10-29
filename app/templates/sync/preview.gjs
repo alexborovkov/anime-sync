@@ -243,6 +243,7 @@ class SyncPreviewComponent extends Component {
               <div class="grid md:grid-cols-2 gap-6">
 
                 <button
+                  data-test-sync-direction="trakt-to-mal"
                   type="button"
                   {{on "click" (fn this.selectDirection "trakt-to-mal")}}
                   class="bg-gray-800 hover:bg-gray-750 rounded-lg p-8 border-2 border-transparent hover:border-trakt-red transition-all group"
@@ -255,6 +256,7 @@ class SyncPreviewComponent extends Component {
                 </button>
 
                 <button
+                  data-test-sync-direction="mal-to-trakt"
                   type="button"
                   {{on "click" (fn this.selectDirection "mal-to-trakt")}}
                   class="bg-gray-800 hover:bg-gray-750 rounded-lg p-8 border-2 border-transparent hover:border-mal-blue transition-all group"
@@ -323,6 +325,7 @@ class SyncPreviewComponent extends Component {
                     Back
                   </button>
                   <button
+                    data-test-analyze-sync
                     type="button"
                     {{on "click" this.analyzeSync}}
                     disabled={{eq this.selectedLists.size 0}}
@@ -393,6 +396,7 @@ class SyncPreviewComponent extends Component {
                     Back
                   </button>
                   <button
+                    data-test-analyze-sync
                     type="button"
                     {{on "click" this.analyzeSync}}
                     disabled={{not this.selectedTargetList}}
@@ -477,12 +481,41 @@ class SyncPreviewComponent extends Component {
               {{! Operations List }}
               <div class="bg-gray-800 rounded-lg p-6 mb-6">
                 <h3 class="text-xl font-bold text-white mb-4">Changes Preview</h3>
+                <p class="text-gray-300 text-sm mb-4">
+                  Open each matched entry to verify the destination before syncing.
+                  Cancel if a match looks incorrect.
+                </p>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
 
                   {{#each this.syncableOperations as |op|}}
-                    <div class="bg-gray-700 rounded p-4 flex items-center justify-between">
+                    <div data-test-sync-match class="bg-gray-700 rounded p-4 flex items-center justify-between">
                       <div class="flex-1">
                         <h4 class="text-white font-medium">{{op.entry.title}}</h4>
+                        <p class="text-gray-300 text-sm mt-1">
+                          {{#if (eq this.direction "trakt-to-mal")}}
+                            Matched MyAnimeList entry:
+                            <a
+                              data-test-matched-target
+                              href="https://myanimelist.net/anime/{{op.entry.malId}}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-blue-300 hover:underline"
+                            >
+                              MAL ID {{op.entry.malId}}
+                            </a>
+                          {{else}}
+                            Matched Trakt entry:
+                            <a
+                              data-test-matched-target
+                              href="https://trakt.tv/shows/{{op.entry.traktId}}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-blue-300 hover:underline"
+                            >
+                              {{op.entry.traktId}}
+                            </a>
+                          {{/if}}
+                        </p>
                       </div>
                       <span class="text-2xl">
                         {{#if (eq op.action "add_to_mal")}}→{{/if}}
@@ -529,6 +562,7 @@ class SyncPreviewComponent extends Component {
               {{! Actions }}
               <div class="flex gap-4 justify-end">
                 <button
+                  data-test-cancel-sync
                   type="button"
                   {{on "click" this.cancel}}
                   class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"

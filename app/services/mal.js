@@ -70,7 +70,7 @@ export default class MalService extends Service {
       return cached.data;
     }
 
-    let endpoint = `/users/@me/animelist?limit=${limit}&offset=${offset}&fields=list_status,num_episodes,alternative_titles`;
+    let endpoint = `/users/@me/animelist?limit=${limit}&offset=${offset}&fields=list_status,num_episodes,alternative_titles,start_season`;
     if (status) {
       endpoint += `&status=${status}`;
     }
@@ -172,7 +172,7 @@ export default class MalService extends Service {
    */
   async searchAnime(query, limit = 10) {
     return this.request(
-      `/anime?q=${encodeURIComponent(query)}&limit=${limit}&fields=alternative_titles,num_episodes`,
+      `/anime?q=${encodeURIComponent(query)}&limit=${limit}&fields=alternative_titles,num_episodes,start_season`,
     );
   }
 
